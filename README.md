@@ -57,6 +57,22 @@ See [docs/README.md](docs/README.md) for full documentation structure and naviga
 
 ---
 
+## 🧩 Profile Guide (Apps & Platforms)
+
+RustFrame supports per-app capture profiles. On Windows, you typically need a specific profile so the window picker can see RustFrame. On macOS, the default profile works for native apps; use the shadow-cursor profile for browser-based sharing when the cursor is missing.
+
+| App | Windows | macOS | Notes |
+|-----|---------|-------|-------|
+| Discord | `discord` | Default | Windows needs taskbar visibility to appear in the picker. |
+| Microsoft Teams | `teams` | Default | Default macOS profile is enough. |
+| OBS Studio | `obs` | Default | Works reliably on both platforms. |
+| Google Meet (Web) | Not tested | `shadow-cursor` | Use shadow cursor so the browser share shows the cursor. |
+| Zoom | ⚠️ Issues on Windows | Not tested | Windows picker/share can be unreliable; needs further investigation. |
+
+Profiles live in `resources/profiles/` and can be selected from the app settings. If you see a double cursor on macOS, switch back to the default profile.
+
+---
+
 ## 📚 Documentation Structure
 
 All detailed documentation is under the [docs/](docs/) directory:

@@ -1,0 +1,6 @@
+{
+  "name": "Shadow Cursor (Web)",
+  "description": "Enables the in-app cursor overlay for browser-based sharing",
+  "explanation": "Use this profile when the conferencing app does not capture the OS cursor (e.g. Google Meet in a browser). It forces show_cursor=true so the cursor appears in the shared window. For native apps like Discord/Teams, use the default profile to avoid double cursors.",
+  "show_cursor": true
+}

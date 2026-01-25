@@ -3,7 +3,9 @@ use tauri::State;
 
 use crate::capture_deps::{CapturePlatform, RealCapturePlatform};
 use crate::{hollow_border, platform::services, profiles, settings_io, AppState};
-use crate::settings::{CaptureMethod, Settings};
+use crate::settings::Settings;
+#[cfg(windows)]
+use crate::settings::CaptureMethod;
 
 use rustframe_capture::capture::CaptureRect;
 
@@ -189,22 +191,30 @@ fn start_capture_with_platform(
         let start_result = engine.start(region, settings.show_cursor, Some(exclusion_list.clone()));
         if let Err(e) = start_result {
             tracing::error!(error = %e, "Capture engine start failed");
-            if settings.capture_method == CaptureMethod::Wgc {
-                tracing::warn!("WGC start failed, falling back to GDI Copy");
-                let mut fallback_settings = settings.clone();
-                fallback_settings.capture_method = CaptureMethod::GdiCopy;
-                *engine_lock = Some(platform.create_capture_engine_for_settings(&fallback_settings)?);
-                if let Some(ref mut fallback_engine) = *engine_lock {
-                    fallback_engine
-                        .start(region, settings.show_cursor, Some(exclusion_list))
-                        .map_err(|e| {
-                            tracing::error!(error = %e, "GDI fallback start failed");
-                            e.to_string()
-                        })?;
+            #[cfg(windows)]
+            {
+                if settings.capture_method == CaptureMethod::Wgc {
+                    tracing::warn!("WGC start failed, falling back to GDI Copy");
+                    let mut fallback_settings = settings.clone();
+                    fallback_settings.capture_method = CaptureMethod::GdiCopy;
+                    *engine_lock =
+                        Some(platform.create_capture_engine_for_settings(&fallback_settings)?);
+                    if let Some(ref mut fallback_engine) = *engine_lock {
+                        fallback_engine
+                            .start(region, settings.show_cursor, Some(exclusion_list))
+                            .map_err(|e| {
+                                tracing::error!(error = %e, "GDI fallback start failed");
+                                e.to_string()
+                            })?;
+                    } else {
+                        return Err("Failed to initialize GDI fallback engine".to_string());
+                    }
                 } else {
-                    return Err("Failed to initialize GDI fallback engine".to_string());
+                    return Err(e.to_string());
                 }
-            } else {
+            }
+            #[cfg(not(windows))]
+            {
                 return Err(e.to_string());
             }
         }

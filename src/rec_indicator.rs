@@ -8,7 +8,10 @@ use crate::traits::RecordingIndicator;
 use lazy_static::lazy_static;
 use log::info;
 use rustframe_capture::config::rec_indicator::*;
-use rustframe_capture::config::timing::{WINDOW_CREATION_TIMEOUT_ITERATIONS, WINDOW_CREATION_POLL_INTERVAL_MS};
+#[cfg(windows)]
+use rustframe_capture::config::timing::{
+    WINDOW_CREATION_POLL_INTERVAL_MS, WINDOW_CREATION_TIMEOUT_ITERATIONS,
+};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;

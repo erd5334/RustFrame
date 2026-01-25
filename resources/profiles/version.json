@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "last_updated": "2026-01-24",
+  "version": "1.0.1",
+  "last_updated": "2026-01-25",
   "profiles": {
     "windows": {
       "discord": {
@@ -23,23 +23,11 @@
       }
     },
     "macos": {
-      "discord": {
+      "shadow-cursor": {
         "version": "1.0.0",
-        "file": "discord.json",
-        "description": "Optimized for Discord screen sharing",
-        "last_updated": "2026-01-10"
-      },
-      "teams": {
-        "version": "1.0.0",
-        "file": "teams.json",
-        "description": "Optimized for Microsoft Teams screen sharing",
-        "last_updated": "2026-01-10"
-      },
-      "obs": {
-        "version": "1.0.0",
-        "file": "obs.json",
-        "description": "Optimized for OBS Studio window capture",
-        "last_updated": "2026-01-24"
+        "file": "shadow-cursor.json",
+        "description": "Enable in-app cursor overlay for browser-based sharing",
+        "last_updated": "2026-01-25"
       }
     }
   }

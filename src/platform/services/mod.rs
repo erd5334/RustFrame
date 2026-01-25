@@ -395,7 +395,7 @@ pub fn create_hollow_border_for_settings(
 
     let border_color = platform::colors::border_rgba_to_native_color(settings.border_color);
 
-    let hollow_border = HollowBorder::new(
+    let mut hollow_border = HollowBorder::new(
         x,
         y,
         width as i32,
@@ -449,7 +449,7 @@ pub fn create_preview_border(
     border_width: i32,
     border_color: u32,
 ) -> Result<HollowBorder, String> {
-    let border = HollowBorder::new(x, y, width, height, border_width, border_color)
+    let mut border = HollowBorder::new(x, y, width, height, border_width, border_color)
         .ok_or("Failed to create preview border")?;
     border.set_preview_mode();
     Ok(border)

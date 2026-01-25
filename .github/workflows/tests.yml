@@ -34,8 +34,7 @@ jobs:
       - name: Run Rust tests
         shell: bash
         run: |
-          mkdir -p target/nextest/ci
-          cargo nextest run --no-default-features --junit-xml target/nextest/ci/nextest.xml
+          cargo nextest run --profile ci --no-default-features
 
       - name: Upload test results
         if: always()
@@ -75,20 +74,19 @@ jobs:
       - name: Run Rust app tests
         shell: bash
         run: |
-          mkdir -p target/nextest/ci
-          cargo nextest run --no-default-features --features app --junit-xml target/nextest/ci/nextest-app.xml
+          cargo nextest run --profile app --no-default-features --features app
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: rust-app-tests-${{ matrix.os }}
-          path: target/nextest/ci/nextest-app.xml
+          path: target/nextest/app/nextest-app.xml
 
       - name: Report test results
         if: always()
         uses: dorny/test-reporter@v1
         with:
           name: Rust app tests (${{ matrix.os }})
-          path: target/nextest/ci/nextest-app.xml
+          path: target/nextest/app/nextest-app.xml
           reporter: java-junit
