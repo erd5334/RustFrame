@@ -1,0 +1,5 @@
+[profile.ci.junit]
+path = "nextest.xml"
+
+[profile.app.junit]
+path = "nextest-app.xml"

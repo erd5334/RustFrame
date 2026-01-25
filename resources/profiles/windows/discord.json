@@ -1,0 +1,15 @@
+{
+  "name": "Discord",
+  "description": "Optimized for Discord screen sharing - borderless window visible in taskbar for 15 seconds",
+  "explanation": "Discord requires windows to be visible in taskbar to detect them. This profile uses WS_POPUP (no title bar) with WS_EX_APPWINDOW to appear in taskbar for 15 seconds, giving user time to select the window in Discord. After 15 seconds, it automatically hides from taskbar but continues sharing.",
+  "show_cursor": true,
+  "winapi_destination_overlapped": false,
+  "winapi_destination_appwindow": true,
+  "winapi_destination_toolwindow": false,
+  "winapi_destination_layered": true,
+  "winapi_destination_alpha": 255,
+  "winapi_destination_topmost": false,
+  "winapi_destination_click_through": false,
+  "winapi_destination_noactivate": false,
+  "winapi_destination_hide_taskbar_after_ms": 15000
+}

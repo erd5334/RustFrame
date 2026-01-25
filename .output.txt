@@ -1,0 +1,254 @@
+    Checking rustframe v1.0.0 (C:\Users\SC-PC\RustroverProjects\RustFrame)
+warning: unused imports: `LWA_ALPHA`, `SetLayeredWindowAttributes`, `WS_EX_APPWINDOW`, `WS_EX_LAYERED`, `WS_EX_TOOLWINDOW`, and `WS_EX_TRANSPARENT`
+  --> src\destination_window\windows.rs:30:19
+   |
+30 |     SetWindowPos, SetLayeredWindowAttributes, LWA_ALPHA, MSG, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^
+31 |     SWP_NOZORDER, SWP_ASYNCWINDOWPOS, WM_USER, WNDCLASSEXW, WS_EX_NOACTIVATE, WS_EX_TOPMOST, WS_OVERLAPPEDW...
+32 |     WS_POPUP, WS_VISIBLE, ShowWindow, SW_HIDE, SW_SHOW, WS_EX_APPWINDOW, WS_EX_LAYERED, WS_EX_TOOLWINDOW,
+   |                                                         ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+33 |     WS_EX_TRANSPARENT,
+   |     ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+warning: unused import: `tauri::State`
+ --> src\commands\system.rs:1:5
+  |
+1 | use tauri::State;
+  |     ^^^^^^^^^^^^
+warning: unused import: `AppState`
+ --> src\commands\system.rs:4:52
+  |
+4 | use crate::{display_info, platform, platform_info, AppState};
+  |                                                    ^^^^^^^^
+warning: unused import: `crate::display_info`
+ --> src\platform\coords.rs:1:5
+  |
+1 | use crate::display_info;
+  |     ^^^^^^^^^^^^^^^^^^^
+warning: unused import: `Manager`
+ --> src\shortcuts.rs:3:22
+  |
+3 | use tauri::{Emitter, Manager};
+  |                      ^^^^^^^
+warning: unreachable pattern
+  --> src\platform\services\windows.rs:23:9
+   |
+23 |         _ => Err("Invalid capture method for Windows".to_string()),
+   |         ^ no value can reach this
+   |
+note: multiple earlier patterns match some of the same values
+  --> src\platform\services\windows.rs:23:9
+   |
+17 |         CaptureMethod::Wgc => WindowsCaptureEngine::new()
+   |         ------------------ matches some of the same values
+...
+20 |         CaptureMethod::GdiCopy => WindowsGdiCopyCaptureEngine::new()
+   |         ---------------------- matches some of the same values
+...
+23 |         _ => Err("Invalid capture method for Windows".to_string()),
+   |         ^ collectively making this unreachable
+   = note: `#[warn(unreachable_patterns)]` (part of `#[warn(unused)]`) on by default
+warning: variable does not need to be mutable
+   --> src\platform\services\mod.rs:398:9
+    |
+398 |     let mut hollow_border = HollowBorder::new(
+    |         ----^^^^^^^^^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+warning: variable does not need to be mutable
+   --> src\platform\services\mod.rs:452:9
+    |
+452 |     let mut border = HollowBorder::new(x, y, width, height, border_wid...
+    |         ----^^^^^^
+    |         |
+    |         help: remove this `mut`
+warning: unused variable: `pm`
+  --> src\settings_io.rs:79:17
+   |
+79 |     if let Some(pm) = obj.get("preview_mode").and_then(|v| v.as_str()) {
+   |                 ^^ help: if this is intentional, prefix it with an underscore: `_pm`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+warning: unused variable: `focus_on_trigger`
+  --> src\shortcuts.rs:44:9
+   |
+44 |     let focus_on_trigger = matches!(action, ShortcutAction::StartCapture);
+   |         ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_focus_on_trigger`
+warning: field `hwnd` is never read
+   --> src\destination_window\d3d11_renderer.rs:163:5
+    |
+147 | pub struct D3D11Renderer {
+    |            ------------- field in this struct
+...
+163 |     hwnd: HWND,
+    |     ^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+warning: method `resize` is never used
+   --> src\destination_window\d3d11_renderer.rs:499:12
+    |
+168 | impl D3D11Renderer {
+    | ------------------ method in this implementation
+...
+499 |     pub fn resize(&mut self, width: u32, height: u32) -> Result<(), St...
+    |            ^^^^^^
+warning: multiple methods are never used
+   --> src\destination_window\windows.rs:278:12
+    |
+148 | impl DestinationWindow {
+    | ---------------------- methods in this implementation
+...
+278 |     pub fn set_position(&self, x: i32, y: i32) {
+    |            ^^^^^^^^^^^^
+...
+304 |     pub fn send_to_back(&self) {
+    |            ^^^^^^^^^^^^
+...
+334 |     pub fn set_display_affinity(&self, allow_capture: bool) {
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+371 |     pub fn exclude_from_capture(&self) {
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+376 |     pub fn bring_to_front(&self) {
+    |            ^^^^^^^^^^^^^^
+...
+398 |     pub fn enable_masking(&self) {
+    |            ^^^^^^^^^^^^^^
+...
+420 |     pub fn hide(&self) {
+    |            ^^^^
+...
+466 |     pub fn show(&self) {
+    |            ^^^^
+warning: function `SetWindowDisplayAffinity` is never used
+   --> src\destination_window\windows.rs:350:20
+    |
+350 | ...   fn SetWindowDisplayAffinity(hwnd: HWND, dwAffinity: u32) -> i32;
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^
+warning: methods `hwnd_value`, `get_hwnd`, and `update_color` are never used
+   --> src\hollow_border\windows.rs:214:12
+    |
+108 | impl HollowBorder {
+    | ----------------- methods in this implementation
+...
+214 |     pub fn hwnd_value(&self) -> isize {
+    |            ^^^^^^^^^^
+...
+219 |     pub fn get_hwnd(&self) -> isize {
+    |            ^^^^^^^^
+...
+261 |     pub fn update_color(&self, color: u32) {
+    |            ^^^^^^^^^^^^
+warning: method `get_capture_inner_rect` is never used
+  --> src\capture_deps.rs:46:8
+   |
+ 6 | pub trait CapturePlatform: Send + Sync {
+   |           --------------- method in this trait
+...
+46 |     fn get_capture_inner_rect(&self) -> Option<(i32, i32, i32, i32)>;
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+warning: field `monitors` is never read
+  --> src\app_state.rs:35:16
+   |
+26 | pub(crate) struct AppState {
+   |                   -------- field in this struct
+...
+35 |     pub(crate) monitors: Arc<Mutex<Vec<MonitorInfo>>>,
+   |                ^^^^^^^^
+   |
+   = note: `AppState` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+warning: function `native_border_color_to_rgb_f64` is never used
+  --> src\platform\colors.rs:20:8
+   |
+20 | pub fn native_border_color_to_rgb_f64(color: u32) -> (f64, f64, f64) {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+warning: function `flip_y_rect_with_height` is never used
+ --> src\platform\coords.rs:5:8
+  |
+5 | pub fn flip_y_rect_with_height(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^
+warning: static `CLICK_COUNTER` is never used
+   --> src\platform.rs:381:12
+    |
+381 |     static CLICK_COUNTER: AtomicU64 = AtomicU64::new(0);
+    |            ^^^^^^^^^^^^^
+warning: methods `show` and `hide` are never used
+   --> src\separation_layer\windows.rs:311:12
+    |
+309 | impl SeparationLayer {
+    | -------------------- methods in this implementation
+310 |     /// Show the separation layer
+311 |     pub fn show(&self) {
+    |            ^^^^
+...
+319 |     pub fn hide(&self) {
+    |            ^^^^
+warning: unused `Result` that must be used
+   --> src\destination_window\d3d11_renderer.rs:493:17
+    |
+493 |                 self.swapchain.Present(1, DXGI_PRESENT(0)).ok();
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+    = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+493 |                 let _ = self.swapchain.Present(1, DXGI_PRESENT(0)).ok();
+    |                 +++++++
+warning: unused `Result` that must be used
+   --> src\destination_window\windows.rs:825:21
+    |
+825 |                     GetClientRect(hwnd, &mut rect);
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+825 |                     let _ = GetClientRect(hwnd, &mut rect);
+    |                     +++++++
+warning: unused `BOOL` that must be used
+   --> src\destination_window\windows.rs:832:21
+    |
+832 |                     EndPaint(hwnd, &ps);
+    |                     ^^^^^^^^^^^^^^^^^^^
+    |
+help: use `let _ = ...` to ignore the resulting value
+    |
+832 |                     let _ = EndPaint(hwnd, &ps);
+    |                     +++++++
+warning: unused `BOOL` that must be used
+   --> src\destination_window\windows.rs:869:37
+    |
+869 | ...                   ValidateRect(Some(hwnd), None);
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: use `let _ = ...` to ignore the resulting value
+    |
+869 |                                     let _ = ValidateRect(Some(hwnd), None);
+    |                                     +++++++
+warning: unused `BOOL` that must be used
+   --> src\separation_layer\windows.rs:240:21
+    |
+240 |                     TranslateMessage(&msg);
+    |                     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: use `let _ = ...` to ignore the resulting value
+    |
+240 |                     let _ = TranslateMessage(&msg);
+    |                     +++++++
+warning: unused `BOOL` that must be used
+   --> src\separation_layer\windows.rs:447:13
+    |
+447 |             EndPaint(hwnd, &ps);
+    |             ^^^^^^^^^^^^^^^^^^^
+    |
+help: use `let _ = ...` to ignore the resulting value
+    |
+447 |             let _ = EndPaint(hwnd, &ps);
+    |             +++++++
+warning: `rustframe` (bin "rustframe") generated 27 warnings (run `cargo fix --bin "rustframe" -p rustframe` to apply 9 suggestions)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 1.26s

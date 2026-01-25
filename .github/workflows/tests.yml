@@ -1,0 +1,92 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  rust-tests:
+    name: Rust tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Run Rust tests
+        shell: bash
+        run: |
+          cargo nextest run --profile ci --no-default-features
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-tests-${{ matrix.os }}
+          path: target/nextest/ci/nextest.xml
+
+      - name: Report test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Rust tests (${{ matrix.os }})
+          path: target/nextest/ci/nextest.xml
+          reporter: java-junit
+
+  rust-app-tests:
+    name: Rust app tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Run Rust app tests
+        shell: bash
+        run: |
+          cargo nextest run --profile app --no-default-features --features app
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-app-tests-${{ matrix.os }}
+          path: target/nextest/app/nextest-app.xml
+
+      - name: Report test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Rust app tests (${{ matrix.os }})
+          path: target/nextest/app/nextest-app.xml
+          reporter: java-junit

@@ -1,0 +1,46 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-24",
+  "profiles": {
+    "windows": {
+      "discord": {
+        "version": "1.0.0",
+        "file": "discord.json",
+        "description": "Optimized for Discord screen sharing",
+        "last_updated": "2026-01-10"
+      },
+      "teams": {
+        "version": "1.0.0",
+        "file": "teams.json",
+        "description": "Optimized for Microsoft Teams screen sharing",
+        "last_updated": "2026-01-24"
+      },
+      "obs": {
+        "version": "1.0.0",
+        "file": "obs.json",
+        "description": "Optimized for OBS Studio window capture",
+        "last_updated": "2026-01-24"
+      }
+    },
+    "macos": {
+      "discord": {
+        "version": "1.0.0",
+        "file": "discord.json",
+        "description": "Optimized for Discord screen sharing",
+        "last_updated": "2026-01-10"
+      },
+      "teams": {
+        "version": "1.0.0",
+        "file": "teams.json",
+        "description": "Optimized for Microsoft Teams screen sharing",
+        "last_updated": "2026-01-10"
+      },
+      "obs": {
+        "version": "1.0.0",
+        "file": "obs.json",
+        "description": "Optimized for OBS Studio window capture",
+        "last_updated": "2026-01-24"
+      }
+    }
+  }
+}
