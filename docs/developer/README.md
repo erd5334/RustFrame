@@ -31,6 +31,14 @@ The preview window is created from src/destination_window/. It supports:
 ## Window Filters
 The Share Content UI stores selections in settings.window_filter. On macOS, these selections are passed into ScreenCaptureKit exclusion filtering; on Windows the Share Content UI is hidden and filters are ignored.
 
+## Capture Visibility (Debug)
+By default, the hollow border and preview windows are excluded from capture tools (OBS, Snipping Tool, etc.). To force them visible for debugging, set the environment variable before launching RustFrame:
+- macOS/Linux: `export RUSTFRAME_ALLOW_SCREEN_CAPTURE=1`
+- Windows (PowerShell): `$env:RUSTFRAME_ALLOW_SCREEN_CAPTURE = "1"`
+
+You can also persist this via settings.json with the hidden key:
+- `debug_allow_screen_capture: true`
+
 ## Build
 See building.md
 
