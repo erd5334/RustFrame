@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -15,18 +16,18 @@ export interface Settings {
   click_highlight_color: [number, number, number, number];
   click_dissolve_ms: number;
   click_highlight_radius: number;
-  
+
   // Border
   show_border: boolean;
   border_color: [number, number, number, number];
   border_width: number;
-  
+
   // Performance
   target_fps: number;
 
   // Capture Method (platform-specific)
   capture_method: "Wgc" | "GdiCopy" | "CoreGraphics";
-  
+
   // Preview Mode (platform-specific)
   preview_mode: "TauriCanvas" | "WinApiGdi";
 
@@ -41,15 +42,15 @@ export interface Settings {
   winapi_destination_noactivate?: boolean | null;
   winapi_destination_overlapped?: boolean | null;
   winapi_destination_hide_taskbar_after_ms?: number | null;
-  
+
   // Region Memory
   remember_last_region: boolean;
   last_region: [number, number, number, number] | null; // [x, y, width, height]
-  
+
   // REC Indicator
   show_rec_indicator: boolean;
   rec_indicator_size: "small" | "medium" | "large";
-  
+
   // Window Exclusion
   window_filter: {
     mode: "none" | "exclude_list" | "include_only";
@@ -64,7 +65,7 @@ export interface Settings {
     auto_exclude_preview: boolean;
     dev_mode: boolean;
   };
-  
+
   // Logging
   log_level: string;
   log_to_file: boolean;
@@ -104,6 +105,7 @@ export interface CaptureProfileHints {
 }
 
 function App() {
+  const { t, i18n } = useTranslation();
   const UI_ZOOM_MIN = 0.8;
   const UI_ZOOM_MAX = 1.25;
   const UI_ZOOM_STEP = 0.05;
@@ -133,6 +135,7 @@ function App() {
   const [showShareModeModal, setShowShareModeModal] = useState(false);
   const [taskbarHideCountdown, setTaskbarHideCountdown] = useState<number | null>(null);
   const [uiZoom, setUiZoom] = useState(1);
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   // Countdown timer for taskbar hiding
   useEffect(() => {
@@ -200,13 +203,13 @@ function App() {
     void initializeApp();
     void loadDevMode();
     void applyDpiAwareWindowSize();
-    
+
     // Listen for region changes during capture (when border is moved)
-    const unlisten = getCurrentWindow().listen<{x: number, y: number, width: number, height: number}>("region-changed", (event) => {
+    const unlisten = getCurrentWindow().listen<{ x: number, y: number, width: number, height: number }>("region-changed", (event) => {
       const { x, y, width, height } = event.payload;
       setCaptureRegion({ x, y, width, height });
     });
-    
+
     return () => {
       unlisten.then(fn => fn());
     };
@@ -254,7 +257,7 @@ function App() {
       if (isCapturing) {
         invoke('stop_capture').catch(console.error);
       }
-      invoke('hide_preview_border').catch(() => {}); // Hide border if visible
+      invoke('hide_preview_border').catch(() => { }); // Hide border if visible
     }
   }, [showSettings, isCapturing]);
 
@@ -263,7 +266,7 @@ function App() {
     try {
       const [width, height] = await invoke<[number, number]>("get_recommended_window_size");
       const window = getCurrentWindow();
-      
+
       // Only resize if we got valid dimensions
       if (width > 0 && height > 0) {
         await window.setSize(new LogicalSize(width, height));
@@ -294,15 +297,15 @@ function App() {
 
     void loadHints();
   }, [activeProfile]);
-  
+
   // Detect monitor changes when capture region moves
   useEffect(() => {
     if (monitors.length === 0) return;
-    
+
     // Find which monitor contains the center of the capture region
     const centerX = captureRegion.x + captureRegion.width / 2;
     const centerY = captureRegion.y + captureRegion.height / 2;
-    
+
     const newMonitorIndex = monitors.findIndex((mon) => {
       return (
         centerX >= mon.x &&
@@ -311,13 +314,13 @@ function App() {
         centerY < mon.y + mon.height
       );
     });
-    
+
     if (newMonitorIndex !== -1 && newMonitorIndex !== selectedMonitor) {
       setSelectedMonitor(newMonitorIndex);
       console.log(`Monitor changed to: ${monitors[newMonitorIndex].name}`);
     }
   }, [captureRegion, monitors, selectedMonitor]);
-  
+
   // Combined initialization to ensure proper order
   const initializeApp = async () => {
     try {
@@ -337,15 +340,15 @@ function App() {
       setProfiles(loadedProfiles);
       const selectedProfile = await invoke<string | null>("get_active_capture_profile");
       setActiveProfile(selectedProfile);
-      
+
       // Then load monitors
       const monitorList = await invoke<MonitorInfo[]>("get_monitors");
       setMonitors(monitorList);
-      
+
       // Find primary monitor
       const primaryIndex = monitorList.findIndex(m => m.is_primary) || 0;
       setSelectedMonitor(primaryIndex);
-      
+
       // Decide which region to use
       if (loadedSettings.remember_last_region && loadedSettings.last_region) {
         // Use saved region from settings
@@ -361,7 +364,7 @@ function App() {
           height: Math.floor(mon.height / 2),
         });
       }
-      
+
     } catch (error) {
       console.error("Failed to initialize app:", error);
     }
@@ -452,7 +455,7 @@ function App() {
     if (showSettings) {
       return;
     }
-    
+
     try {
       console.log("Starting capture with region:", captureRegion);
       await invoke("start_capture", {
@@ -464,25 +467,25 @@ function App() {
       });
       setIsCapturing(true);
       console.log("Capture started successfully!");
-      
+
       // Start countdown if applicable
       if (activeProfileHints?.hide_taskbar_after_ms && activeProfileHints.hide_taskbar_after_ms >= 1000) {
-          setTaskbarHideCountdown(Math.ceil(activeProfileHints.hide_taskbar_after_ms / 1000));
+        setTaskbarHideCountdown(Math.ceil(activeProfileHints.hide_taskbar_after_ms / 1000));
       }
     } catch (error) {
       console.error("Failed to start capture:", error);
-      
+
       // CRITICAL: Clean up any partially created windows/borders
       try {
         await invoke("cleanup_on_capture_failed");
       } catch (cleanupError) {
         console.error("Cleanup also failed:", cleanupError);
       }
-      
+
       // Show user-friendly error message
       const errorMsg = typeof error === 'string' ? error : String(error);
       let userMessage = "Failed to start capture. ";
-      
+
       // Platform-specific error hints
       if (platformInfo?.os_type === "macos") {
         if (errorMsg.toLowerCase().includes("permission") || errorMsg.toLowerCase().includes("denied")) {
@@ -492,13 +495,14 @@ function App() {
         }
       } else if (platformInfo?.os_type === "windows") {
         if (errorMsg.toLowerCase().includes("permission") || errorMsg.toLowerCase().includes("access")) {
-          userMessage += "Check Windows permissions or try running as Administrator. See logs for details."; } else {
+          userMessage += "Check Windows permissions or try running as Administrator. See logs for details.";
+        } else {
           userMessage += "Try restarting the application. See logs for details.";
         }
       } else {
         userMessage += "Check system permissions. See logs for details.";
       }
-      
+
       alert(userMessage);
     }
   };
@@ -508,18 +512,18 @@ function App() {
       // Backend stop_capture now saves last_region and returns updated settings
       const updatedSettings = await invoke<Settings>("stop_capture");
       setIsCapturing(false);
-      
+
       // Update frontend state with backend's saved settings
       const normalized = normalizeSettings(updatedSettings);
       setSettings(normalized);
-      
+
       // If last_region was saved, update captureRegion for UI
       if (normalized.last_region) {
         const [x, y, width, height] = normalized.last_region;
         setCaptureRegion({ x, y, width, height });
         console.log("Last region saved:", { x, y, width, height });
       }
-      
+
       // Show donation reminder occasionally (only in release mode)
       if (!devMode) {
         showDonationReminderIfNeeded();
@@ -528,7 +532,7 @@ function App() {
       console.error("Failed to stop capture:", error);
     }
   };
-  
+
   // Smart donation reminder: shows every N capture sessions (configured in AppConfig)
   const showDonationReminderIfNeeded = () => {
     try {
@@ -536,7 +540,7 @@ function App() {
       const captureCount = parseInt(localStorage.getItem(storageKey) || '0', 10);
       const newCount = captureCount + 1;
       localStorage.setItem(storageKey, newCount.toString());
-      
+
       // Show reminder at configured interval
       if (newCount % AppConfig.donate.reminder.showInterval === 0) {
         // Small delay so user sees capture stopped first
@@ -572,7 +576,7 @@ function App() {
         ? "Shortcut format is not supported. Reverted to previous shortcuts."
         : /register|shortcut|hotkey/i.test(errorMsg)
           ? "Shortcut already in use or reserved. Reverted to previous shortcuts."
-        : `Failed to save settings: ${errorMsg}`;
+          : `Failed to save settings: ${errorMsg}`;
       try {
         const refreshed = await invoke<Settings>("get_settings");
         const normalized = normalizeSettings(refreshed);
@@ -588,7 +592,7 @@ function App() {
   if (!settings) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
-        <div className="text-xl">Loading...</div>
+        <div className="text-xl">{t('app.loading')}</div>
       </div>
     );
   }
@@ -596,20 +600,20 @@ function App() {
   return (
     <div className="h-screen bg-gray-900 text-white flex flex-col rounded-lg overflow-hidden border border-gray-700 relative">
       {/* Custom Titlebar */}
-      <div 
+      <div
         className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center justify-between select-none cursor-default"
         onMouseDown={(e) => {
           // Only handle left click and not on interactive elements
           if (e.button !== 0 || (e.target as HTMLElement).closest('button')) {
             return;
           }
-          
+
           // CRITICAL: Do NOT start window dragging when Settings modal is open!
           // startDragging() hijacks all pointer events and breaks slider/color picker interactions.
           if (showSettings || showDonate || showDonateReminder) {
             return;
           }
-          
+
           // e.detail: 1 = single click, 2 = double click
           if (e.detail === 2) {
             // Double click - toggle maximize
@@ -629,19 +633,57 @@ function App() {
           <button
             onClick={() => setShowDonate(true)}
             className="px-2 py-1 text-sm flex items-center gap-1 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-            title="Support Development"
+            title={t('app.support_development')}
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
             </svg>
-            <span className="hidden sm:inline">Donate</span>
+            <span className="hidden sm:inline">{t('app.donate')}</span>
           </button>
 
+          {/* Language Selector */}
+          <div
+            className="relative"
+            onMouseEnter={() => setShowLanguageMenu(true)}
+            onMouseLeave={() => setShowLanguageMenu(false)}
+          >
+            <button
+              className="px-2 py-1 text-sm text-gray-400 hover:text-white hover:bg-gray-700/50 rounded transition-colors flex items-center gap-1"
+              title="Change Language"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="hidden md:inline uppercase">{i18n.language}</span>
+            </button>
+            <div className={`absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-[60] py-1 min-w-[120px] transition-all duration-200 ${showLanguageMenu ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+              {[
+                { code: 'en', label: 'English', flag: '🇺🇸' },
+                { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
+                { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+                { code: 'es', label: 'Español', flag: '🇪🇸' }
+                /*{ code: 'ja', label: '日本語', flag: '🇯🇵' }*/
+              ].map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    i18n.changeLanguage(lang.code);
+                    setShowLanguageMenu(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 transition-colors flex items-center gap-2 ${i18n.language === lang.code ? 'text-blue-400 font-bold bg-gray-700/50' : 'text-gray-300'}`}
+                >
+                  <span>{lang.flag}</span>
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Help Button */}
-           <button
+          <button
             onClick={() => open(AppConfig.links.documentation)}
             className="px-2 py-1 text-sm text-gray-400 hover:text-white hover:bg-gray-700/50 rounded transition-colors flex items-center gap-1"
-            title="Help / Documentation"
+            title={t('app.help_documentation')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -657,12 +699,12 @@ function App() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            Settings
+            {t('app.settings')}
           </button>
           <button
             onClick={() => void getCurrentWindow().minimize()}
             className="w-8 h-8 flex items-center justify-center hover:bg-gray-700 rounded transition-colors"
-            title="Minimize"
+            title={t('app.minimize')}
           >
             <svg className="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
@@ -671,7 +713,7 @@ function App() {
           <button
             onClick={() => void getCurrentWindow().toggleMaximize()}
             className="w-8 h-8 flex items-center justify-center hover:bg-gray-700 rounded transition-colors"
-            title="Maximize"
+            title={t('app.maximize')}
           >
             <svg className="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4h16v4M4 16v4h16v-4" />
@@ -680,7 +722,7 @@ function App() {
           <button
             onClick={() => void getCurrentWindow().close()}
             className="w-8 h-8 flex items-center justify-center hover:bg-red-600 rounded transition-colors"
-            title="Close"
+            title={t('app.close')}
           >
             <svg className="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -694,7 +736,7 @@ function App() {
           onClick={() => applyUiZoom(uiZoom - UI_ZOOM_STEP, true)}
           disabled={uiZoom <= UI_ZOOM_MIN}
           className="w-7 h-7 rounded-full bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold"
-          title="Zoom out"
+          title={t('app.zoom_out')}
         >
           -
         </button>
@@ -705,7 +747,7 @@ function App() {
           onClick={() => applyUiZoom(uiZoom + UI_ZOOM_STEP, true)}
           disabled={uiZoom >= UI_ZOOM_MAX}
           className="w-7 h-7 rounded-full bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold"
-          title="Zoom in"
+          title={t('app.zoom_in')}
         >
           +
         </button>
@@ -714,16 +756,15 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-y-auto bg-gradient-to-b from-gray-900 to-gray-950">
         <div className="max-w-5xl mx-auto space-y-6">
-          
+
           {/* HERO SECTION - Capture Control */}
-          <div className={`relative overflow-hidden rounded-2xl p-8 border-2 transition-all duration-300 ${
-            isCapturing 
-              ? 'bg-gradient-to-br from-red-600/20 via-gray-800 to-gray-900 border-red-500/50 shadow-lg shadow-red-500/20' 
-              : 'bg-gradient-to-br from-green-600/20 via-gray-800 to-gray-900 border-green-500/30 shadow-lg'
-          }`}>
+          <div className={`relative overflow-hidden rounded-2xl p-8 border-2 transition-all duration-300 ${isCapturing
+            ? 'bg-gradient-to-br from-red-600/20 via-gray-800 to-gray-900 border-red-500/50 shadow-lg shadow-red-500/20'
+            : 'bg-gradient-to-br from-green-600/20 via-gray-800 to-gray-900 border-green-500/30 shadow-lg'
+            }`}>
             {/* Background decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl -z-10"></div>
-            
+
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               {/* Left side - Status & Info */}
               <div className="flex-1 space-y-4">
@@ -732,34 +773,34 @@ function App() {
                   <h2 className="text-2xl font-bold">
                     {isCapturing ? (
                       <span className="bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
-                        Recording...
+                        {t('app.recording')}
                       </span>
                     ) : (
-                      <span className="text-gray-100">Ready to Capture</span>
+                      <span className="text-gray-100">{t('app.ready_to_capture')}</span>
                     )}
                   </h2>
                 </div>
-                
+
                 {/* Profile Selection */}
                 <div className="flex items-center gap-3 relative">
-                  <label className="text-sm font-medium text-gray-400">Profile:</label>
+                  <label className="text-sm font-medium text-gray-400">{t('app.profile')}</label>
                   <select
                     value={activeProfile ?? ""}
                     onChange={(e) => handleProfileChange(e.target.value)}
                     className="flex-1 max-w-xs h-10 bg-gray-700/50 border border-gray-600 rounded-lg px-4 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     disabled={isCapturing}
                   >
-                    <option value="">Default</option>
+                    <option value="">{t('app.default')}</option>
                     {profiles.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.id}
                       </option>
                     ))}
                   </select>
-                  
+
                   {/* Info Icon & Tooltip */}
                   <div className="relative">
-                    <button 
+                    <button
                       onClick={() => setShowProfileInfo(!showProfileInfo)}
                       onBlur={() => setTimeout(() => setShowProfileInfo(false), 200)}
                       className="text-gray-400 hover:text-blue-400 focus:outline-none transition-colors"
@@ -768,13 +809,12 @@ function App() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </button>
-                    
+
                     {showProfileInfo && (
                       <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 w-64 p-4 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 animate-fadeIn text-left">
-                        <h4 className="font-bold text-white mb-1">Capture Profiles</h4>
+                        <h4 className="font-bold text-white mb-1">{t('app.capture_profiles_title')}</h4>
                         <p className="text-sm text-gray-400 leading-relaxed">
-                          Profiles optimize capture settings for specific apps (Discord, Zoom, etc). 
-                          They handle window sizing and taskbar hiding automatically.
+                          {t('app.capture_profiles_desc')}
                         </p>
                         <div className="absolute left-0 top-1/2 -translate-x-[5px] -translate-y-1/2 w-2 h-2 bg-gray-800 border-l border-b border-gray-700 rotate-45"></div>
                       </div>
@@ -787,23 +827,23 @@ function App() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
                   </svg>
-                  <span>Region: {captureRegion.width} × {captureRegion.height}</span>
+                  <span>{t('app.region')} {captureRegion.width} × {captureRegion.height}</span>
                   {monitors.length > 0 && selectedMonitor < monitors.length && (
                     <>
                       <span className="text-gray-600">|</span>
                       <span className="text-gray-500">
-                        {monitors[selectedMonitor].name} ({monitors[selectedMonitor].width}x{monitors[selectedMonitor].height} 
+                        {monitors[selectedMonitor].name} ({monitors[selectedMonitor].width}x{monitors[selectedMonitor].height}
                         @ {Math.round((monitors[selectedMonitor].scale_factor || 1) * 100)}%)
                       </span>
                     </>
                   )}
                   <span className="text-gray-600">|</span>
-                  <button 
+                  <button
                     onClick={() => openSettings("region")}
                     disabled={isCapturing}
                     className={`underline ${isCapturing ? "text-gray-500 cursor-not-allowed" : "text-blue-400 hover:text-blue-300"}`}
                   >
-                    Edit
+                    {t('app.edit')}
                   </button>
                 </div>
 
@@ -818,45 +858,43 @@ function App() {
               {/* Right side - Big Action Button */}
               <div className="flex flex-col items-center gap-3">
                 <button
-                  onClick={isCapturing ? handleStopCapture : handleStartCapture}
-                  className={`group relative px-12 py-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-xl ${
-                    isCapturing
-                      ? "bg-gradient-to-br from-red-700 to-red-800 hover:from-red-600 hover:to-red-700 text-white shadow-red-500/30"
-                      : "bg-gradient-to-br from-green-700 to-green-800 hover:from-green-600 hover:to-green-700 text-white shadow-green-500/30"
-                  }`}
+                  onClick={() => isCapturing ? handleStopCapture() : handleStartCapture("button")}
+                  className={`group relative px-12 py-6 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-xl ${isCapturing
+                    ? "bg-gradient-to-br from-red-700 to-red-800 hover:from-red-600 hover:to-red-700 text-white shadow-red-500/30"
+                    : "bg-gradient-to-br from-green-700 to-green-800 hover:from-green-600 hover:to-green-700 text-white shadow-green-500/30"
+                    }`}
                 >
                   <div className="flex items-center gap-3 relative z-10">
                     {isCapturing ? (
                       <>
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                          <rect x="6" y="4" width="4" height="16" rx="1"/>
-                          <rect x="14" y="4" width="4" height="16" rx="1"/>
+                          <rect x="6" y="4" width="4" height="16" rx="1" />
+                          <rect x="14" y="4" width="4" height="16" rx="1" />
                         </svg>
-                        <span>STOP</span>
+                        <span>{t('app.stop_capture')}</span>
                       </>
                     ) : (
                       <>
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="10"/>
+                          <circle cx="12" cy="12" r="10" />
                         </svg>
-                        <span>START CAPTURE</span>
+                        <span>{t('app.start_capture')}</span>
                       </>
                     )}
                   </div>
                   {/* Glow effect */}
-                  <div className={`absolute inset-0 rounded-2xl blur-xl transition-opacity duration-300 ${
-                    isCapturing 
-                      ? 'bg-red-500 opacity-5 group-hover:opacity-10' 
-                      : 'bg-green-500 opacity-10 group-hover:opacity-20'
-                  }`}></div>
+                  <div className={`absolute inset-0 rounded-2xl blur-xl transition-opacity duration-300 ${isCapturing
+                    ? 'bg-red-500 opacity-5 group-hover:opacity-10'
+                    : 'bg-green-500 opacity-10 group-hover:opacity-20'
+                    }`}></div>
                 </button>
-                
+
                 {isCapturing && (
                   <div className="flex flex-col items-center mt-2 space-y-1">
-                    <span className="text-xs text-gray-400 animate-pulse">Press to stop recording</span>
+                    <span className="text-xs text-gray-400 animate-pulse">{t('app.press_to_stop')}</span>
                     {taskbarHideCountdown !== null && (
                       <span className="text-xs text-yellow-500 font-bold animate-pulse" style={{ animationDuration: '0.8s' }}>
-                        Preview hiding in {taskbarHideCountdown}...
+                        {t('app.preview_hiding_in', { count: taskbarHideCountdown })}
                       </span>
                     )}
                   </div>
@@ -870,22 +908,22 @@ function App() {
           {/* QUICK SETTINGS CARDS */}
           <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-200">Quick Settings</h3>
+              <h3 className="text-lg font-semibold text-gray-200">{t('app.quick_settings')}</h3>
               <button
                 onClick={() => openSettings("capture")}
                 disabled={isCapturing}
                 className={`text-sm flex items-center gap-1 transition-colors ${isCapturing ? "text-gray-500 cursor-not-allowed" : "text-blue-400 hover:text-blue-300"}`}
               >
-                <span>View All</span>
+                <span>{t('app.view_all')}</span>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {/* Share Mode Tile */}
-              <div 
+              <div
                 onClick={() => !isCapturing && setShowShareModeModal(true)}
                 className={`group relative bg-gradient-to-br rounded-xl p-4 border-2 transition-all duration-300 ${isCapturing ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:scale-105"} from-blue-500/15 to-gray-800 border-blue-500/40`}
               >
@@ -896,40 +934,38 @@ function App() {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-300">Share Mode</div>
-                    <div className="text-sm font-bold text-gray-200">{settings.window_filter.mode === "include_only" ? "Include Only" : settings.window_filter.mode === "exclude_list" ? "Exclude List" : "Capture All"}</div>
+                    <div className="text-xs font-medium text-gray-300">{t('app.share_mode')}</div>
+                    <div className="text-sm font-bold text-gray-200">{settings.window_filter.mode === "include_only" ? t('settings.share_content.mode_include') : settings.window_filter.mode === "exclude_list" ? t('settings.share_content.mode_exclude') : t('settings.share_content.mode_none')}</div>
                   </div>
                 </div>
               </div>
               {/* Click Highlight Card */}
-              <div 
+              <div
                 onClick={() => !isCapturing && openSettings("mouse")}
-                className={`group relative bg-gradient-to-br rounded-xl p-4 border-2 transition-all duration-300 ${isCapturing ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:scale-105"} ${
-                  settings.capture_clicks 
-                    ? 'from-green-500/20 to-gray-800 border-green-500/50 shadow-lg shadow-green-500/20' 
-                    : 'from-gray-700/20 to-gray-800 border-gray-600 hover:border-gray-500'
-                }`}
+                className={`group relative bg-gradient-to-br rounded-xl p-4 border-2 transition-all duration-300 ${isCapturing ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:scale-105"} ${settings.capture_clicks
+                  ? 'from-green-500/20 to-gray-800 border-green-500/50 shadow-lg shadow-green-500/20'
+                  : 'from-gray-700/20 to-gray-800 border-gray-600 hover:border-gray-500'
+                  }`}
               >
                 <div className="flex flex-col items-center text-center space-y-2">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                    settings.capture_clicks ? 'bg-green-500/30 text-green-400' : 'bg-gray-600/30 text-gray-400'
-                  }`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${settings.capture_clicks ? 'bg-green-500/30 text-green-400' : 'bg-gray-600/30 text-gray-400'
+                    }`}>
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-300">Click Highlight</div>
+                    <div className="text-xs font-medium text-gray-300">{t('app.click_highlight')}</div>
                     <div className={`text-sm font-bold ${settings.capture_clicks ? 'text-green-400' : 'text-gray-500'}`}>
-                      {settings.capture_clicks ? 'ON' : 'OFF'}
+                      {settings.capture_clicks ? t('app.on') : t('app.off')}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* FPS Card */}
-              <div 
+              <div
                 onClick={() => !isCapturing && openSettings("performance")}
                 className="group relative bg-gradient-to-br from-blue-500/20 to-gray-800 rounded-xl p-4 border-2 border-blue-500/50 transition-all duration-300 cursor-pointer hover:scale-105 shadow-lg shadow-blue-500/20"
               >
@@ -940,82 +976,76 @@ function App() {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-300">Target FPS</div>
+                    <div className="text-xs font-medium text-gray-300">{t('app.target_fps')}</div>
                     <div className="text-sm font-bold text-blue-400">{settings.target_fps}</div>
                   </div>
                 </div>
               </div>
 
               {/* Border Card */}
-              <div 
+              <div
                 onClick={() => !isCapturing && openSettings("visual")}
-                className={`group relative bg-gradient-to-br rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer hover:scale-105 ${
-                settings.show_border 
-                  ? 'from-purple-500/20 to-gray-800 border-purple-500/50 shadow-lg shadow-purple-500/20' 
+                className={`group relative bg-gradient-to-br rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer hover:scale-105 ${settings.show_border
+                  ? 'from-purple-500/20 to-gray-800 border-purple-500/50 shadow-lg shadow-purple-500/20'
                   : 'from-gray-700/20 to-gray-800 border-gray-600 hover:border-gray-500'
-              }`}>
-                <div className="flex flex-col items-center text-center space-y-2">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                    settings.show_border ? 'bg-purple-500/30 text-purple-400' : 'bg-gray-600/30 text-gray-400'
                   }`}>
+                <div className="flex flex-col items-center text-center space-y-2">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${settings.show_border ? 'bg-purple-500/30 text-purple-400' : 'bg-gray-600/30 text-gray-400'
+                    }`}>
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
                     </svg>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-300">Border</div>
+                    <div className="text-xs font-medium text-gray-300">{t('app.border')}</div>
                     <div className={`text-sm font-bold ${settings.show_border ? 'text-purple-400' : 'text-gray-500'}`}>
-                      {settings.show_border ? `${settings.border_width}px` : 'OFF'}
+                      {settings.show_border ? `${settings.border_width}px` : t('app.off')}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* REC Indicator Card */}
-              <div 
+              <div
                 onClick={() => !isCapturing && openSettings("visual")}
-                className={`group relative bg-gradient-to-br rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer hover:scale-105 ${
-                settings.show_rec_indicator 
-                  ? 'from-red-500/20 to-gray-800 border-red-500/50 shadow-lg shadow-red-500/20' 
+                className={`group relative bg-gradient-to-br rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer hover:scale-105 ${settings.show_rec_indicator
+                  ? 'from-red-500/20 to-gray-800 border-red-500/50 shadow-lg shadow-red-500/20'
                   : 'from-gray-700/20 to-gray-800 border-gray-600 hover:border-gray-500'
-              }`}>
-                <div className="flex flex-col items-center text-center space-y-2">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                    settings.show_rec_indicator ? 'bg-red-500/30 text-red-400' : 'bg-gray-600/30 text-gray-400'
                   }`}>
+                <div className="flex flex-col items-center text-center space-y-2">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${settings.show_rec_indicator ? 'bg-red-500/30 text-red-400' : 'bg-gray-600/30 text-gray-400'
+                    }`}>
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="8"/>
+                      <circle cx="12" cy="12" r="8" />
                     </svg>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-300">REC Indicator</div>
+                    <div className="text-xs font-medium text-gray-300">{t('app.rec_indicator')}</div>
                     <div className={`text-sm font-bold ${settings.show_rec_indicator ? 'text-red-400' : 'text-gray-500'}`}>
-                      {settings.show_rec_indicator ? settings.rec_indicator_size.toUpperCase() : 'OFF'}
+                      {settings.show_rec_indicator ? settings.rec_indicator_size.toUpperCase() : t('app.off')}
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Region Memory Card */}
-              <div 
+              <div
                 onClick={() => !isCapturing && openSettings("advanced")}
-                className={`group relative bg-gradient-to-br rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer hover:scale-105 ${
-                settings.remember_last_region 
-                  ? 'from-yellow-500/20 to-gray-800 border-yellow-500/50 shadow-lg shadow-yellow-500/20' 
+                className={`group relative bg-gradient-to-br rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer hover:scale-105 ${settings.remember_last_region
+                  ? 'from-yellow-500/20 to-gray-800 border-yellow-500/50 shadow-lg shadow-yellow-500/20'
                   : 'from-gray-700/20 to-gray-800 border-gray-600 hover:border-gray-500'
-              }`}>
-                <div className="flex flex-col items-center text-center space-y-2">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                    settings.remember_last_region ? 'bg-yellow-500/30 text-yellow-400' : 'bg-gray-600/30 text-gray-400'
                   }`}>
+                <div className="flex flex-col items-center text-center space-y-2">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${settings.remember_last_region ? 'bg-yellow-500/30 text-yellow-400' : 'bg-gray-600/30 text-gray-400'
+                    }`}>
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                     </svg>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-300">Auto-Restore</div>
+                    <div className="text-xs font-medium text-gray-300">{t('app.auto_restore')}</div>
                     <div className={`text-sm font-bold ${settings.remember_last_region ? 'text-yellow-400' : 'text-gray-500'}`}>
-                      {settings.remember_last_region ? "ON" : "OFF"}
+                      {settings.remember_last_region ? t('app.on') : t('app.off')}
                     </div>
                   </div>
                 </div>
@@ -1026,201 +1056,200 @@ function App() {
           {/* OLD SECTIONS - Will be removed/redesigned in next steps */}
           {/* Current Settings Preview - More Prominent */}
           <div className="hidden">
-          <div className="bg-gradient-to-br from-gray-800 to-gray-850 rounded-lg p-6 border border-gray-600 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Active Configuration
-              </h2>
-              <button
-                onClick={() => setShowSettings(true)}
-                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Click Capture */}
-              <div className="bg-gray-700/50 rounded-lg p-4 text-center">
-                <div className={`w-10 h-10 mx-auto mb-2 rounded-full flex items-center justify-center ${settings.capture_clicks ? 'bg-green-500/20 text-green-400' : 'bg-gray-600 text-gray-400'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-gradient-to-br from-gray-800 to-gray-850 rounded-lg p-6 border border-gray-600 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
+                  Active Configuration
+                </h2>
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* Click Capture */}
+                <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+                  <div className={`w-10 h-10 mx-auto mb-2 rounded-full flex items-center justify-center ${settings.capture_clicks ? 'bg-green-500/20 text-green-400' : 'bg-gray-600 text-gray-400'}`}>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </div>
+                  <div className="text-xs text-gray-400">Click Highlight</div>
+                  <div className={`text-sm font-medium ${settings.capture_clicks ? 'text-green-400' : 'text-gray-500'}`}>
+                    {settings.capture_clicks ? "ON" : "OFF"}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-400">Click Highlight</div>
-                <div className={`text-sm font-medium ${settings.capture_clicks ? 'text-green-400' : 'text-gray-500'}`}>
-                  {settings.capture_clicks ? "ON" : "OFF"}
+
+                {/* FPS */}
+                <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+                  <div className="w-10 h-10 mx-auto mb-2 rounded-full flex items-center justify-center bg-blue-500/20 text-blue-400">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <div className="text-xs text-gray-400">Target FPS</div>
+                  <div className="text-sm font-medium text-blue-400">{settings.target_fps}</div>
+                </div>
+
+                {/* Border */}
+                <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+                  <div className={`w-10 h-10 mx-auto mb-2 rounded-full flex items-center justify-center ${settings.show_border ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-600 text-gray-400'}`}>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                    </svg>
+                  </div>
+                  <div className="text-xs text-gray-400">Border</div>
+                  <div className={`text-sm font-medium ${settings.show_border ? 'text-purple-400' : 'text-gray-500'}`}>
+                    {settings.show_border ? `${settings.border_width}px` : "OFF"}
+                  </div>
                 </div>
               </div>
 
-              {/* FPS */}
-              <div className="bg-gray-700/50 rounded-lg p-4 text-center">
-                <div className="w-10 h-10 mx-auto mb-2 rounded-full flex items-center justify-center bg-blue-500/20 text-blue-400">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
+              {/* Additional Settings Row */}
+              <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400">Capture:</span>
+                  <span className="text-white font-medium">{settings.capture_method === "Wgc" ? "Windows Graphics" : "GDI Copy"}</span>
                 </div>
-                <div className="text-xs text-gray-400">Target FPS</div>
-                <div className="text-sm font-medium text-blue-400">{settings.target_fps}</div>
-              </div>
-
-              {/* Border */}
-              <div className="bg-gray-700/50 rounded-lg p-4 text-center">
-                <div className={`w-10 h-10 mx-auto mb-2 rounded-full flex items-center justify-center ${settings.show_border ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-600 text-gray-400'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                  </svg>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400">Preview:</span>
+                  <span className="text-white font-medium">{settings.preview_mode === "TauriCanvas" ? "Tauri" : "WinAPI"}</span>
                 </div>
-                <div className="text-xs text-gray-400">Border</div>
-                <div className={`text-sm font-medium ${settings.show_border ? 'text-purple-400' : 'text-gray-500'}`}>
-                  {settings.show_border ? `${settings.border_width}px` : "OFF"}
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400">REC Indicator:</span>
+                  <span className={settings.show_rec_indicator ? "text-red-400 font-medium" : "text-gray-500"}>{settings.show_rec_indicator ? settings.rec_indicator_size : "OFF"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400">Remember Region:</span>
+                  <span className={settings.remember_last_region ? "text-green-400 font-medium" : "text-gray-500"}>{settings.remember_last_region ? "Yes" : "No"}</span>
                 </div>
               </div>
             </div>
 
-            {/* Additional Settings Row */}
-            <div className="mt-4 pt-4 border-t border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400">Capture:</span>
-                <span className="text-white font-medium">{settings.capture_method === "Wgc" ? "Windows Graphics" : "GDI Copy"}</span>
+            {/* MONITOR & REGION VISUALIZATION */}
+            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Monitor & Region Setup
+                </h3>
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>Configure in Settings</span>
+                </button>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400">Preview:</span>
-                <span className="text-white font-medium">{settings.preview_mode === "TauriCanvas" ? "Tauri" : "WinAPI"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400">REC Indicator:</span>
-                <span className={settings.show_rec_indicator ? "text-red-400 font-medium" : "text-gray-500"}>{settings.show_rec_indicator ? settings.rec_indicator_size : "OFF"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400">Remember Region:</span>
-                <span className={settings.remember_last_region ? "text-green-400 font-medium" : "text-gray-500"}>{settings.remember_last_region ? "Yes" : "No"}</span>
-              </div>
-            </div>
-          </div>
 
-          {/* MONITOR & REGION VISUALIZATION */}
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-200 flex items-center gap-2">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                Monitor & Region Setup
-              </h3>
-              <button
-                onClick={() => setShowSettings(true)}
-                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span>Configure in Settings</span>
-              </button>
-            </div>
-
-            {/* Monitor Selection */}
-            {monitors.length > 1 && (
-              <div className="mb-6">
-                <label className="text-sm font-medium text-gray-400 mb-2 block">Select Monitor:</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {monitors.map((mon, idx) => (
-                    <button
-                      key={mon.id}
-                      onClick={() => setSelectedMonitor(idx)}
-                      className={`p-4 rounded-lg border-2 transition-all duration-300 text-left ${
-                        selectedMonitor === idx
+              {/* Monitor Selection */}
+              {monitors.length > 1 && (
+                <div className="mb-6">
+                  <label className="text-sm font-medium text-gray-400 mb-2 block">Select Monitor:</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {monitors.map((mon, idx) => (
+                      <button
+                        key={mon.id}
+                        onClick={() => setSelectedMonitor(idx)}
+                        className={`p-4 rounded-lg border-2 transition-all duration-300 text-left ${selectedMonitor === idx
                           ? 'bg-blue-500/20 border-blue-500 shadow-lg shadow-blue-500/20'
                           : 'bg-gray-700/30 border-gray-600 hover:border-gray-500 hover:bg-gray-700/50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                          </svg>
-                          <span className="font-medium text-white">{mon.name}</span>
+                          }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span className="font-medium text-white">{mon.name}</span>
+                          </div>
+                          {mon.is_primary && (
+                            <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">Primary</span>
+                          )}
                         </div>
-                        {mon.is_primary && (
-                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">Primary</span>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-400">
-                        {mon.width} × {mon.height} @ {mon.refresh_rate}Hz
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Region Info */}
-            <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-xs text-gray-400 mb-1">Position</div>
-                  <div className="text-sm font-medium text-white">{captureRegion.x}, {captureRegion.y}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xs text-gray-400 mb-1">Size</div>
-                  <div className="text-sm font-medium text-white">{captureRegion.width} × {captureRegion.height}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xs text-gray-400 mb-1">Aspect Ratio</div>
-                  <div className="text-sm font-medium text-white">
-                    {(captureRegion.width / captureRegion.height).toFixed(2)}:1
+                        <div className="text-sm text-gray-400">
+                          {mon.width} × {mon.height} @ {mon.refresh_rate}Hz
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-xs text-gray-400 mb-1">Monitor</div>
-                  <div className="text-sm font-medium text-white truncate">
-                    {monitors[selectedMonitor]?.name || "N/A"}
+              )}
+
+              {/* Region Info */}
+              <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-xs text-gray-400 mb-1">Position</div>
+                    <div className="text-sm font-medium text-white">{captureRegion.x}, {captureRegion.y}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-gray-400 mb-1">Size</div>
+                    <div className="text-sm font-medium text-white">{captureRegion.width} × {captureRegion.height}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-gray-400 mb-1">Aspect Ratio</div>
+                    <div className="text-sm font-medium text-white">
+                      {(captureRegion.width / captureRegion.height).toFixed(2)}:1
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-gray-400 mb-1">Monitor</div>
+                    <div className="text-sm font-medium text-white truncate">
+                      {monitors[selectedMonitor]?.name || "N/A"}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Quick Tip */}
-              <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                  <div className="text-xs text-blue-300">
-                    <strong>Tip:</strong> The hollow border will appear at this position when you start capturing. 
-                    Adjust size and position in Settings → Capture Region for pixel-perfect positioning.
+                {/* Quick Tip */}
+                <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div className="text-xs text-blue-300">
+                      <strong>Tip:</strong> The hollow border will appear at this position when you start capturing.
+                      Adjust size and position in Settings → Capture Region for pixel-perfect positioning.
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* ACTIVE CONFIGURATION SUMMARY */}
-          <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-200 mb-4">Active Configuration</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-              <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
-                <span className="text-gray-400">Capture Method:</span>
-                <span className="text-white font-medium">{settings.capture_method}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
-                <span className="text-gray-400">Preview Mode:</span>
-                <span className="text-white font-medium">{settings.preview_mode}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
-                <span className="text-gray-400">Profile:</span>
-                <span className="text-white font-medium">{activeProfile || "Default"}</span>
+            {/* ACTIVE CONFIGURATION SUMMARY */}
+            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-200 mb-4">Active Configuration</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+                  <span className="text-gray-400">Capture Method:</span>
+                  <span className="text-white font-medium">{settings.capture_method}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+                  <span className="text-gray-400">Preview Mode:</span>
+                  <span className="text-white font-medium">{settings.preview_mode}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+                  <span className="text-gray-400">Profile:</span>
+                  <span className="text-white font-medium">{activeProfile || "Default"}</span>
+                </div>
               </div>
             </div>
-          </div>
           </div>
         </div>
       </div>
@@ -1244,7 +1273,7 @@ function App() {
       {/* Donate Modal */}
       {showDonate && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowDonate(false)}>
-          <div 
+          <div
             className="bg-gray-800 rounded-xl overflow-hidden max-w-md w-full mx-4 border border-gray-700 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1252,7 +1281,7 @@ function App() {
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <svg className="w-5 h-5 text-pink-400" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                 </svg>
                 Support RustFrame
               </h2>
@@ -1265,7 +1294,7 @@ function App() {
                 </svg>
               </button>
             </div>
-            
+
             {/* Content */}
             <div className="p-6">
               <p className="text-gray-300 text-sm mb-6 text-center">
@@ -1289,8 +1318,8 @@ function App() {
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.771.771 0 0 1 .76-.654h6.281c2.09 0 3.63.554 4.58 1.648.951 1.093 1.227 2.536.82 4.287-.542 2.344-1.615 4.048-3.193 5.07-1.578 1.022-3.584 1.54-5.963 1.54H6.394l-1.318 5.726z"/>
-                  <path d="M23.595 8.328c-.548 2.38-1.625 4.116-3.2 5.16-1.576 1.044-3.592 1.573-5.99 1.573h-.83a.77.77 0 0 0-.76.652l-.86 5.44a.641.641 0 0 1-.634.74h-3.43l-.21.916a.641.641 0 0 0 .633.74h3.457a.77.77 0 0 0 .76-.654l.71-4.497h1.173c2.38 0 4.39-.528 5.97-1.573 1.578-1.044 2.65-2.779 3.198-5.159.32-1.387.32-2.548 0-3.483-.002-.008-.005-.015-.007-.022-.072-.23-.163-.45-.274-.66z"/>
+                  <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.771.771 0 0 1 .76-.654h6.281c2.09 0 3.63.554 4.58 1.648.951 1.093 1.227 2.536.82 4.287-.542 2.344-1.615 4.048-3.193 5.07-1.578 1.022-3.584 1.54-5.963 1.54H6.394l-1.318 5.726z" />
+                  <path d="M23.595 8.328c-.548 2.38-1.625 4.116-3.2 5.16-1.576 1.044-3.592 1.573-5.99 1.573h-.83a.77.77 0 0 0-.76.652l-.86 5.44a.641.641 0 0 1-.634.74h-3.43l-.21.916a.641.641 0 0 0 .633.74h3.457a.77.77 0 0 0 .76-.654l.71-4.497h1.173c2.38 0 4.39-.528 5.97-1.573 1.578-1.044 2.65-2.779 3.198-5.159.32-1.387.32-2.548 0-3.483-.002-.008-.005-.015-.007-.022-.072-.23-.163-.45-.274-.66z" />
                 </svg>
                 Open PayPal in Browser
               </button>
@@ -1306,7 +1335,7 @@ function App() {
       {/* Donation Reminder Modal - Gentle version shown after captures */}
       {showDonateReminder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fadeIn" onClick={() => setShowDonateReminder(false)}>
-          <div 
+          <div
             className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl overflow-hidden max-w-sm w-full mx-4 border border-gray-600 shadow-2xl animate-slideUp"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1316,7 +1345,7 @@ function App() {
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center animate-pulse">
                   <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                   </svg>
                 </div>
               </div>
@@ -1324,7 +1353,7 @@ function App() {
               <h3 className="text-xl font-bold text-white mb-2">
                 Enjoying RustFrame? ✨
               </h3>
-              
+
               <p className="text-gray-300 text-sm mb-6 leading-relaxed">
                 We noticed you've been using RustFrame quite a bit! 🎉
                 <br />
@@ -1340,11 +1369,11 @@ function App() {
                   className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                   </svg>
                   Yes, I'd love to help! 💝
                 </button>
-                
+
                 <button
                   onClick={() => setShowDonateReminder(false)}
                   className="w-full py-2.5 text-gray-400 hover:text-white text-sm font-medium transition-colors"
@@ -1364,7 +1393,7 @@ function App() {
       {/* Share Mode Modal */}
       {showShareModeModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowShareModeModal(false)}>
-          <div 
+          <div
             className="bg-gray-800 rounded-xl overflow-hidden max-w-sm w-full mx-4 border border-gray-700 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
