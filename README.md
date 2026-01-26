@@ -1,11 +1,13 @@
 # RustFrame
 
-[![Build and Release](https://github.com/salihcantekin/RustFrame/actions/workflows/release.yml/badge.svg?branch=dev)](https://github.com/salihcantekin/RustFrame/actions/workflows/release.yml)
-[![Latest Release](https://img.shields.io/github/v/release/salihcantekin/RustFrame?include_prereleases&sort=semver)](https://github.com/salihcantekin/RustFrame/releases)
-[![Downloads](https://img.shields.io/github/downloads/salihcantekin/RustFrame/total.svg)](https://github.com/salihcantekin/RustFrame/releases)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-
+<p align="center">
+  <a href="https://github.com/salihcantekin/RustFrame/actions/workflows/build-windows.yml"><img alt="Windows Build" src="https://img.shields.io/github/actions/workflow/status/salihcantekin/RustFrame/build-windows.yml?branch=master&label=Windows%20Build&logo=windows&style=flat-square"></a>
+  <a href="https://github.com/salihcantekin/RustFrame/actions/workflows/build-macos.yml"><img alt="macOS Build" src="https://img.shields.io/github/actions/workflow/status/salihcantekin/RustFrame/build-macos.yml?branch=master&label=macOS%20Build&logo=apple&style=flat-square"></a>
+  <a href="https://github.com/salihcantekin/RustFrame/releases"><img alt="Windows Release" src="https://img.shields.io/github/v/release/salihcantekin/RustFrame?filter=*windows*&label=Windows%20Release&logo=windows&style=flat-square"></a>
+  <a href="https://github.com/salihcantekin/RustFrame/releases"><img alt="macOS Release" src="https://img.shields.io/github/v/release/salihcantekin/RustFrame?filter=*macos*&label=macOS%20Release&logo=apple&style=flat-square"></a>
+  <a href="https://github.com/salihcantekin/RustFrame/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/salihcantekin/RustFrame/total?label=Downloads&style=flat-square"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?label=License&style=flat-square"></a>
+</p>
 
 **RustFrame** is a privacy-focused, cross-platform screen region sharing tool. It lets you select any area of your screen and share only that region in video calls—without exposing your entire desktop.
 
@@ -38,8 +40,15 @@ See below for quick links and platform details. For more, see the [User Guide](d
 - **[Developer Guide](docs/developer/)** – Architecture, building, contributing
 - **[Technical Docs](docs/technical/)** – Platform details, performance, internals
 - **[Profiles & Platform Settings](docs/profiles/)** – Platform-specific configuration
-- **[Changelog](docs/changelog/)** – Version history
-- **[Archive](docs/archive/)** – Historical/experimental docs
+
+---
+
+## 🎥 Walkthrough Videos
+
+| Language | Video |
+|----------|-------|
+| Turkish | [![RustFrame overview (TR)](https://img.youtube.com/vi/YJRu-6YHflw/hqdefault.jpg)](https://www.youtube.com/watch?v=YJRu-6YHflw) |
+| English | Coming soon |
 
 ---
 
