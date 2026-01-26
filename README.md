@@ -47,8 +47,9 @@ See below for quick links and platform details. For more, see the [User Guide](d
 
 | Language | Video |
 |----------|-------|
+| English | [![RustFrame overview (EN)](https://img.youtube.com/vi/TZ4n9UYwnWg/hqdefault.jpg)](https://www.youtube.com/watch?v=TZ4n9UYwnWg) |
 | Turkish | [![RustFrame overview (TR)](https://img.youtube.com/vi/YJRu-6YHflw/hqdefault.jpg)](https://www.youtube.com/watch?v=YJRu-6YHflw) |
-| English | [![RustFrame overview (EN)](https://www.youtube.com/watch?v=TZ4n9UYwnWg) |
+
 
 ---
 
