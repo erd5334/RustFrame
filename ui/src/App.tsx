@@ -8,6 +8,7 @@ import { open } from "@tauri-apps/plugin-shell";
 import SettingsDialog from "./components/SettingsDialog";
 import { AppConfig, PlatformInfo } from "./config";
 import { SHORTCUTS_ENABLED } from "./featureFlags";
+import { saveLanguage } from "./i18n/config";
 
 export interface Settings {
   // Mouse & Cursor
@@ -649,7 +650,7 @@ function App() {
           >
             <button
               className="px-2 py-1 text-sm text-gray-400 hover:text-white hover:bg-gray-700/50 rounded transition-colors flex items-center gap-1"
-              title="Change Language"
+              title={t('app.change_language')}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -661,13 +662,17 @@ function App() {
                 { code: 'en', label: 'English', flag: '🇺🇸' },
                 { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
                 { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-                { code: 'es', label: 'Español', flag: '🇪🇸' }
-                /*{ code: 'ja', label: '日本語', flag: '🇯🇵' }*/
+                { code: 'es', label: 'Español', flag: '🇪🇸' },
+                { code: 'ja', label: '日本語', flag: '🇯🇵' },
+                { code: 'fr', label: 'Français', flag: '🇫🇷' },
+                { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+                { code: 'it', label: 'Italiano', flag: '🇮🇹' }
               ].map((lang) => (
                 <button
                   key={lang.code}
                   onClick={() => {
                     i18n.changeLanguage(lang.code);
+                    saveLanguage(lang.code);
                     setShowLanguageMenu(false);
                   }}
                   className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 transition-colors flex items-center gap-2 ${i18n.language === lang.code ? 'text-blue-400 font-bold bg-gray-700/50' : 'text-gray-300'}`}
