@@ -8,6 +8,7 @@ import { PlatformInfo } from "../config";
 import { WindowExclusionTab } from "./WindowExclusionTab";
 import { hexToRgba, rgbaToBgrU32, rgbaToHex } from "../utils/colors";
 import { SHORTCUTS_ENABLED } from "../featureFlags";
+import { loadLocalLocales, saveLanguage } from "../i18n/config";
 
 interface CaptureRegion {
   x: number;
@@ -56,7 +57,7 @@ function SettingsDialog({
   onMonitorChange,
   onClose
 }: SettingsDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [localSettings, setLocalSettings] = useState<Settings>(settings);
   const [localRegion, setLocalRegion] = useState<CaptureRegion>(captureRegion);
@@ -69,6 +70,9 @@ function SettingsDialog({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [clickHighlightTest, setClickHighlightTest] = useState<{ x: number, y: number, timestamp: number } | null>(null);
   const [recordingShortcut, setRecordingShortcut] = useState<"start_capture" | "stop_capture" | "zoom_in" | "zoom_out" | null>(null);
+  const [availableLocales, setAvailableLocales] = useState<string[]>([]);
+  const [localesLoading, setLocalesLoading] = useState(false);
+  const [localesDownloading, setLocalesDownloading] = useState(false);
 
   const pointerDownOnBackdropRef = useRef(false);
 
@@ -85,9 +89,52 @@ function SettingsDialog({
     zoom_out: "CmdOrCtrl+Shift+Minus",
   };
 
+  const languageOptions = Array.from(new Set(["en", ...availableLocales]))
+    .map((code) => ({
+      code,
+      label: code,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
   useEffect(() => {
     invoke<string>("get_app_version").then(setAppVersion).catch(e => console.error(e));
   }, []);
+
+  const refreshLocales = async () => {
+    setLocalesLoading(true);
+    const codes = await loadLocalLocales();
+    setAvailableLocales(codes);
+    setLocalesLoading(false);
+  };
+
+  const handleDownloadLocales = async () => {
+    setLocalesDownloading(true);
+    try {
+      const result = await invoke<{ downloaded: number; skipped: number }>("download_locales");
+      if (result.downloaded > 0) {
+        setToastMessage(t('settings.languages.download_success', { count: result.downloaded }));
+      } else if (result.skipped > 0) {
+        setToastMessage(t('settings.languages.download_skipped', { count: result.skipped }));
+      } else {
+        setToastMessage(t('settings.languages.download_noop'));
+      }
+      await refreshLocales();
+    } catch (error) {
+      console.error("Failed to download locales:", error);
+      const message = typeof error === "string"
+        ? error
+        : error instanceof Error
+          ? error.message
+          : "";
+      if (message.includes("No language files found")) {
+        setToastMessage(t('settings.languages.download_not_found'));
+      } else {
+        setToastMessage(t('settings.languages.download_failed'));
+      }
+    } finally {
+      setLocalesDownloading(false);
+    }
+  };
 
   // Load local profiles and version when Profiles tab is opened
   useEffect(() => {
@@ -103,6 +150,12 @@ function SettingsDialog({
           .then((data) => setProfileVersionData(data))
           .catch((error) => console.error("Failed to load local version.json:", error));
       }
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "advanced") {
+      void refreshLocales();
     }
   }, [activeTab]);
 
@@ -137,7 +190,7 @@ function SettingsDialog({
       }
 
       if (parts.length === 0) {
-        setToastMessage("Please include Ctrl/Cmd, Alt, or Shift.");
+        setToastMessage(t('settings.shortcuts.modifier_error'));
         return;
       }
 
@@ -170,7 +223,7 @@ function SettingsDialog({
       })();
 
       if (!key) {
-        setToastMessage("Unsupported key. Try letters, numbers, arrows, or function keys.");
+        setToastMessage(t('settings.shortcuts.unsupported_key'));
         return;
       }
 
@@ -390,11 +443,11 @@ function SettingsDialog({
       });
       if (filePath) {
         await invoke("export_settings", { path: filePath });
-        setToastMessage("Settings exported successfully");
+        setToastMessage(t('messages.export_success'));
       }
     } catch (error) {
       console.error(error);
-      setToastMessage("Failed to export settings");
+      setToastMessage(t('messages.export_error'));
     }
   };
 
@@ -411,7 +464,7 @@ function SettingsDialog({
           if (result.message) {
             setToastMessage(result.message);
           } else {
-            setToastMessage("Failed to import settings");
+            setToastMessage(t('messages.import_error'));
           }
           if (result.settings) {
             setLocalSettings(result.settings);
@@ -420,11 +473,11 @@ function SettingsDialog({
         }
 
         setLocalSettings(imported);
-        setToastMessage("Settings imported successfully");
+        setToastMessage(t('messages.import_success'));
       }
     } catch (error) {
       console.error(error);
-      setToastMessage("Failed to import settings");
+      setToastMessage(t('messages.import_error'));
     }
   };
 
@@ -1420,6 +1473,57 @@ function SettingsDialog({
 
 
               </SectionCard>
+
+              <SectionCard title={t('settings.languages.title')}>
+                <p className="text-sm text-gray-400">
+                  {t('settings.languages.description')}
+                </p>
+                <div className="mt-4 space-y-3">
+                  <label className="block text-sm text-gray-400">{t('settings.languages.current')}</label>
+                  <select
+                    value={i18n.language}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      i18n.changeLanguage(next);
+                      saveLanguage(next);
+                    }}
+                    className="w-full h-10 bg-gray-900 border border-gray-700 rounded-lg px-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {languageOptions.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={handleDownloadLocales}
+                      disabled={localesDownloading}
+                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-sm text-white transition-colors"
+                    >
+                      {localesDownloading ? t('settings.languages.downloading') : t('settings.languages.download')}
+                    </button>
+                    <button
+                      onClick={() => invoke("open_locales_folder")}
+                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-white transition-colors"
+                    >
+                      {t('settings.languages.open_folder')}
+                    </button>
+                    <button
+                      onClick={refreshLocales}
+                      disabled={localesLoading}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg text-sm text-white transition-colors"
+                    >
+                      {localesLoading ? t('settings.languages.loading') : t('settings.languages.reload')}
+                    </button>
+                  </div>
+
+                  <div className="text-xs text-gray-500">
+                    {t('settings.languages.available_count', { count: languageOptions.length })}
+                  </div>
+                </div>
+              </SectionCard>
             </div>
           )}
 
@@ -1749,6 +1853,7 @@ function SettingsDialog({
                 </div>
                 <h2 className="text-3xl font-bold text-white mb-2">RustFrame</h2>
                 <p className="text-gray-400">{t('settings.about.tagline')}</p>
+                <p className="text-gray-500 text-sm mt-1">by Salih Cantekin</p>
                 <p className="text-gray-500 text-sm mt-2">v{appVersion} • {platformInfo.os_type} {platformInfo.os_version !== "Unknown" ? platformInfo.os_version : ""}</p>
               </div>
 

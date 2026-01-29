@@ -208,7 +208,7 @@ export function WindowExclusionTab({ settings, onSettingsChange, platformInfo }:
       </div>
 
       {/* Windows Warning */}
-      {platformInfo.os === "windows" && (
+      {platformInfo.os_type === "windows" && (
         <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-4 flex items-start gap-3">
           <div className="text-yellow-500 mt-1">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -230,40 +230,40 @@ export function WindowExclusionTab({ settings, onSettingsChange, platformInfo }:
         <div className="flex gap-3">
           <button
             onClick={() => handleModeChange("none")}
-            disabled={platformInfo.os === "windows" && settings.window_filter.mode !== "none"}
+            disabled={platformInfo.os_type === "windows" && settings.window_filter.mode !== "none"}
             className={`flex-1 px-4 py-3 rounded-lg border transition-all ${settings.window_filter.mode === "none"
                 ? "bg-blue-600 border-blue-500 text-white shadow-lg"
                 : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
-              } ${platformInfo.os === "windows" && settings.window_filter.mode !== "none" ? "opacity-50 cursor-not-allowed" : ""}`}
+              } ${platformInfo.os_type === "windows" && settings.window_filter.mode !== "none" ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <div className="font-semibold">{t('settings.share_content.capture_all')}</div>
             <div className="text-xs opacity-80">{t('settings.share_content.capture_all_desc')}</div>
           </button>
           <button
             onClick={() => handleModeChange("exclude_list")}
-            disabled={platformInfo.os === "windows"}
+            disabled={platformInfo.os_type === "windows"}
             className={`flex-1 px-4 py-3 rounded-lg border transition-all ${settings.window_filter.mode === "exclude_list"
                 ? "bg-red-600 border-red-500 text-white shadow-lg"
                 : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
-              } ${platformInfo.os === "windows" ? "opacity-50 cursor-not-allowed" : ""}`}
+              } ${platformInfo.os_type === "windows" ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <div className="font-semibold">{t('settings.share_content.exclude_windows')}</div>
             <div className="text-xs opacity-80">{t('settings.share_content.exclude_windows_desc')}</div>
-            {platformInfo.os === "windows" && (
+            {platformInfo.os_type === "windows" && (
               <div className="text-xs opacity-60 mt-1">{t('settings.share_content.not_supported_windows')}</div>
             )}
           </button>
           <button
             onClick={() => handleModeChange("include_only")}
-            disabled={platformInfo.os === "windows"}
+            disabled={platformInfo.os_type === "windows"}
             className={`flex-1 px-4 py-3 rounded-lg border transition-all ${settings.window_filter.mode === "include_only"
                 ? "bg-green-600 border-green-500 text-white shadow-lg"
                 : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
-              } ${platformInfo.os === "windows" ? "opacity-50 cursor-not-allowed" : ""}`}
+              } ${platformInfo.os_type === "windows" ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <div className="font-semibold">{t('settings.share_content.include_only')}</div>
             <div className="text-xs opacity-80">{t('settings.share_content.include_only_desc')}</div>
-            {platformInfo.os === "windows" && (
+            {platformInfo.os_type === "windows" && (
               <div className="text-xs opacity-60 mt-1">{t('settings.share_content.not_supported_windows')}</div>
             )}
           </button>

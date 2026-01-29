@@ -8,7 +8,7 @@ import { open } from "@tauri-apps/plugin-shell";
 import SettingsDialog from "./components/SettingsDialog";
 import { AppConfig, PlatformInfo } from "./config";
 import { SHORTCUTS_ENABLED } from "./featureFlags";
-import { saveLanguage } from "./i18n/config";
+import { loadLocalLocales } from "./i18n/config";
 
 export interface Settings {
   // Mouse & Cursor
@@ -106,7 +106,7 @@ export interface CaptureProfileHints {
 }
 
 function App() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const UI_ZOOM_MIN = 0.8;
   const UI_ZOOM_MAX = 1.25;
   const UI_ZOOM_STEP = 0.05;
@@ -136,7 +136,6 @@ function App() {
   const [showShareModeModal, setShowShareModeModal] = useState(false);
   const [taskbarHideCountdown, setTaskbarHideCountdown] = useState<number | null>(null);
   const [uiZoom, setUiZoom] = useState(1);
-  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   // Countdown timer for taskbar hiding
   useEffect(() => {
@@ -204,6 +203,7 @@ function App() {
     void initializeApp();
     void loadDevMode();
     void applyDpiAwareWindowSize();
+    void loadLocalLocales();
 
     // Listen for region changes during capture (when border is moved)
     const unlisten = getCurrentWindow().listen<{ x: number, y: number, width: number, height: number }>("region-changed", (event) => {
@@ -627,7 +627,10 @@ function App() {
       >
         <div className="flex items-center gap-3 pointer-events-none">
           <img src="/icon.png" alt="RustFrame" className="w-6 h-6" />
-          <h1 className="text-lg font-semibold">RustFrame</h1>
+          <div className="flex flex-col leading-tight">
+            <h1 className="text-lg font-semibold">RustFrame</h1>
+            <span className="text-[11px] text-gray-400/70 tracking-wide">by Salih Cantekin</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Donate Button */}
@@ -641,48 +644,6 @@ function App() {
             </svg>
             <span className="hidden sm:inline">{t('app.donate')}</span>
           </button>
-
-          {/* Language Selector */}
-          <div
-            className="relative"
-            onMouseEnter={() => setShowLanguageMenu(true)}
-            onMouseLeave={() => setShowLanguageMenu(false)}
-          >
-            <button
-              className="px-2 py-1 text-sm text-gray-400 hover:text-white hover:bg-gray-700/50 rounded transition-colors flex items-center gap-1"
-              title={t('app.change_language')}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="hidden md:inline uppercase">{i18n.language}</span>
-            </button>
-            <div className={`absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-[60] py-1 min-w-[120px] transition-all duration-200 ${showLanguageMenu ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-              {[
-                { code: 'en', label: 'English', flag: '🇺🇸' },
-                { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
-                { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-                { code: 'es', label: 'Español', flag: '🇪🇸' },
-                { code: 'ja', label: '日本語', flag: '🇯🇵' },
-                { code: 'fr', label: 'Français', flag: '🇫🇷' },
-                { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-                { code: 'it', label: 'Italiano', flag: '🇮🇹' }
-              ].map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => {
-                    i18n.changeLanguage(lang.code);
-                    saveLanguage(lang.code);
-                    setShowLanguageMenu(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 transition-colors flex items-center gap-2 ${i18n.language === lang.code ? 'text-blue-400 font-bold bg-gray-700/50' : 'text-gray-300'}`}
-                >
-                  <span>{lang.flag}</span>
-                  {lang.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Help Button */}
           <button

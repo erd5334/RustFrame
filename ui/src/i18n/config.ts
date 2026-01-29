@@ -1,14 +1,13 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { invoke } from '@tauri-apps/api/core';
 
 import en from './locales/en.json';
-import tr from './locales/tr.json';
-import de from './locales/de.json';
-import es from './locales/es.json';
-import ja from './locales/ja.json';
-import fr from './locales/fr.json';
-import ru from './locales/ru.json';
-import it from './locales/it.json';
+
+type LocaleEntry = {
+  code: string;
+  data: Record<string, unknown>;
+};
 
 // Get saved language from localStorage or default to 'en'
 const getSavedLanguage = () => {
@@ -28,18 +27,11 @@ export const saveLanguage = (lang: string) => {
   }
 };
 
-i18n
+export const i18nReady = i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: en },
-      tr: { translation: tr },
-      de: { translation: de },
-      es: { translation: es },
-      ja: { translation: ja },
-      fr: { translation: fr },
-      ru: { translation: ru },
-      it: { translation: it }
+      en: { translation: en }
     },
     lng: getSavedLanguage(), // Use saved language
     fallbackLng: 'en',
@@ -47,5 +39,50 @@ i18n
       escapeValue: false,
     },
   });
+
+export const listLocalLocales = async () => {
+  try {
+    return await invoke<string[]>('list_locales');
+  } catch (error) {
+    console.warn('Failed to list local locales:', error);
+    return [];
+  }
+};
+
+export const loadLocalLocales = async () => {
+  await i18nReady;
+  let locales: LocaleEntry[] = [];
+  try {
+    locales = await invoke<LocaleEntry[]>('load_locales');
+  } catch (error) {
+    console.warn('Failed to load local locales:', error);
+  }
+
+  const codes: string[] = [];
+  for (const entry of locales) {
+    if (!entry?.code || entry.code === 'en') {
+      continue;
+    }
+    i18n.addResourceBundle(entry.code, 'translation', entry.data, true, true);
+    codes.push(entry.code);
+  }
+
+  const available = new Set(['en', ...codes]);
+  if (!available.has(i18n.language)) {
+    i18n.changeLanguage('en');
+    saveLanguage('en');
+  }
+
+  return codes;
+};
+
+export const getLocalesPath = async () => {
+  try {
+    return await invoke<string>('get_locales_path');
+  } catch (error) {
+    console.warn('Failed to get locales path:', error);
+    return '';
+  }
+};
 
 export default i18n;

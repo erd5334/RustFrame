@@ -22,6 +22,7 @@ RustFrame is a screen-region capture tool that creates a shareable preview windo
 - Supports multi-monitor setups.
 - Optional click highlights and recording indicator overlays.
 - Profiles let you apply platform-specific window behavior overrides.
+- Localization: English is built-in; additional languages can be downloaded in Settings -> Advanced.
 
 ## Share Content Filters
 On macOS, the Share Content tab can exclude selected windows during capture; the preview window is always excluded. Include-only mode is not enforced yet. On Windows, the Share Content UI is hidden and filters are ignored.

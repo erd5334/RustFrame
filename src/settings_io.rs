@@ -12,6 +12,10 @@ pub fn rustframe_profiles_dir() -> Option<PathBuf> {
     rustframe_config_dir().map(|d| d.join("Profiles"))
 }
 
+pub fn rustframe_locales_dir() -> Option<PathBuf> {
+    rustframe_config_dir().map(|d| d.join("locales"))
+}
+
 pub fn get_os_profile_subdir() -> &'static str {
     if cfg!(target_os = "windows") {
         "windows"
@@ -218,11 +222,23 @@ pub fn persist_settings_to_disk(settings: &Settings) -> Result<(), String> {
         Ok(s) => serde_json::from_str(&s).unwrap_or_else(|_| serde_json::json!({})),
         Err(_) => serde_json::json!({}),
     };
+    if !existing_value.is_object() {
+        existing_value = serde_json::json!({});
+    }
 
     let new_value = serde_json::to_value(settings).map_err(|e| e.to_string())?;
 
     let hidden_keys = ["debug_allow_screen_capture"];
+    let hidden_values: Vec<(String, Value)> = hidden_keys
+        .iter()
+        .filter_map(|key| existing_value.get(*key).cloned().map(|v| (key.to_string(), v)))
+        .collect();
     merge_json_preserve_hidden(&mut existing_value, new_value, &hidden_keys);
+    if let Value::Object(ref mut obj) = existing_value {
+        for (key, value) in hidden_values {
+            obj.insert(key, value);
+        }
+    }
 
     let pretty = serde_json::to_string_pretty(&existing_value).map_err(|e| e.to_string())?;
     std::fs::write(settings_path, pretty).map_err(|e| e.to_string())?;

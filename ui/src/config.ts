@@ -71,4 +71,3 @@ export interface PlatformCapabilities {
   supports_hardware_acceleration: boolean;
   has_winapi_options: boolean;
 }
-

@@ -24,6 +24,7 @@
 - Move/resize the capture region live—even while sharing
 - GPU-accelerated for smooth performance
 - Customizable: border, highlights, cursor, FPS, and more
+- Multi-language UI with downloadable language packs
 - Windows, macOS, and Linux support (Linux experimental)
 
 See below for quick links and platform details. For more, see the [User Guide](docs/user-guide/).
@@ -40,6 +41,15 @@ See below for quick links and platform details. For more, see the [User Guide](d
 - **[Profiles & Platform Settings](docs/profiles/)** – Platform-specific configuration
 - **[Changelog](docs/changelog/)** – Version history
 - **[Archive](docs/archive/)** – Historical/experimental docs
+
+---
+
+## 🔒 Permissions & OS Security
+
+RustFrame needs OS permissions to capture the screen and may be blocked by platform security defaults. If you hit permission prompts or the app will not open, check these docs:
+
+- **macOS**: Screen Recording + Accessibility are required; Gatekeeper may require "Open Anyway." See [docs/user-guide/macos-permissions.md](docs/user-guide/macos-permissions.md).
+- **Windows**: No OS permission prompts, but some capture methods may require admin-level graphics access; see [docs/user-guide/troubleshooting.md](docs/user-guide/troubleshooting.md) if capture fails.
 
 ---
 

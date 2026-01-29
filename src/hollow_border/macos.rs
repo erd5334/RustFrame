@@ -784,6 +784,10 @@ extern "C" fn mouse_dragged(this: &Object, _cmd: Sel, event: id) {
         let _: () = msg_send![this, setNeedsDisplay: YES];
 
         let preview_mode = PREVIEW_MODE.load(Ordering::SeqCst);
+        let is_resizing = edge_mask != -1;
+        if preview_mode && is_resizing {
+            let _: () = msg_send![window, displayIfNeeded];
+        }
 
         // In capture mode: force immediate updates for screen sharing apps
         if !preview_mode {

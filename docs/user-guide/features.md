@@ -36,6 +36,11 @@ This document describes features that are implemented in the current codebase.
 - Profiles are JSON overrides stored under the RustFrame config directory in a Profiles/<os> subfolder.
 - Built-in profiles are copied from resources/profiles/<os> on first run.
 
+## Localization
+- English is bundled with the app; other languages are loaded from local JSON files.
+- Use Settings -> Advanced -> Language to download and reload language packs.
+- Locale files live under the RustFrame config directory in a locales/ folder.
+
 ## Share Content Filters
 - The UI can enumerate windows and save include/exclude lists.
 - On macOS, excluded windows are passed into ScreenCaptureKit filtering; the preview window is always excluded.
