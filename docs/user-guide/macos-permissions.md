@@ -1,6 +1,6 @@
 # macOS Permissions
 
-RustFrame requires Screen Recording permission to capture the screen. It also benefits from Accessibility permission for click highlights and local config access.
+RustFrame requires Screen Recording and Accessibility permissions to function correctly on macOS. File system access is also required for settings, profiles, and exports.
 
 ## Screen Recording (Required)
 1. System Settings -> Privacy & Security -> Screen Recording
@@ -9,8 +9,8 @@ RustFrame requires Screen Recording permission to capture the screen. It also be
 
 RustFrame checks permission and returns an error if it is missing; it does not request permission automatically.
 
-## Accessibility (Optional, Click Highlights + Local Files)
-Click highlights on macOS use system event taps. Accessibility also covers RustFrame's local file access (settings, profiles, and locales), so a separate Files & Folders permission is not needed. If click highlights do not appear:
+## Accessibility (Required)
+On macOS use system event taps and RustFrame relies on Accessibility permission for core functionality.
 1. System Settings -> Privacy & Security -> Accessibility
 2. Enable RustFrame
 3. Restart RustFrame
