@@ -104,6 +104,13 @@ pub mod debug {
     pub const ALLOW_SCREEN_CAPTURE_ENV: &str = "RUSTFRAME_ALLOW_SCREEN_CAPTURE";
 }
 
+/// Remote Resources
+pub mod remote {
+    /// GitHub API location for downloadable locale JSON files.
+    pub const LOCALES_DIR_API_URL: &str =
+        "https://api.github.com/repos/salihcantekin/RustFrame/contents/resources/locales";
+}
+
 /// Color Utilities
 pub mod colors {
     /// Convert ARGB u32 to RGBA byte array

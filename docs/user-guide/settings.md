@@ -7,6 +7,14 @@ This is a concise reference for settings used by the Rust backend. Some settings
 - macOS: ~/Library/Application Support/RustFrame/settings.json
 - Linux: ~/.config/RustFrame/settings.json
 
+## Language Packs
+Locale files are stored alongside the settings.json file:
+- Windows: %APPDATA%\RustFrame\locales\
+- macOS: ~/Library/Application Support/RustFrame/locales/
+- Linux: ~/.config/RustFrame/locales/
+
+English is bundled with the app. Additional languages can be downloaded from Settings -> Advanced -> Language.
+
 ## Mouse and Clicks
 - show_cursor: boolean, default false. Show Shadow Cursor (draws a second cursor in the preview; may appear as double cursor in screen share).
 - capture_clicks: boolean, default true. Enable click highlights.

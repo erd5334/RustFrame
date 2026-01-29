@@ -1,4 +1,5 @@
 import { open } from "@tauri-apps/plugin-shell";
+import { useTranslation } from "react-i18next";
 import { SHORTCUTS_ENABLED } from "../featureFlags";
 
 interface HelpOverlayProps {
@@ -6,20 +7,21 @@ interface HelpOverlayProps {
 }
 
 function HelpOverlay({ onClose }: HelpOverlayProps) {
+  const { t } = useTranslation();
   const shortcuts = [
-    { keys: "Cmd/Ctrl + Shift + R", action: "Start Capture (default)" },
-    { keys: "Cmd/Ctrl + Shift + S", action: "Stop Capture (default)" },
-    { keys: "Cmd/Ctrl + Shift + =", action: "Zoom In (default)" },
-    { keys: "Cmd/Ctrl + Shift + Minus", action: "Zoom Out (default)" },
-    { keys: "Esc", action: "Close Dialogs" },
+    { keys: "Cmd/Ctrl + Shift + R", action: t('settings.help.shortcut_start_capture') },
+    { keys: "Cmd/Ctrl + Shift + S", action: t('settings.help.shortcut_stop_capture') },
+    { keys: "Cmd/Ctrl + Shift + =", action: t('settings.help.shortcut_zoom_in') },
+    { keys: "Cmd/Ctrl + Shift + Minus", action: t('settings.help.shortcut_zoom_out') },
+    { keys: "Esc", action: t('settings.help.shortcut_close_dialogs') },
   ];
 
   return (
-    <div 
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm animate-fadeIn" 
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm animate-fadeIn"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl overflow-hidden max-w-2xl w-full mx-4 border border-gray-600 shadow-2xl animate-slideUp"
         onClick={(e) => e.stopPropagation()}
       >
@@ -33,8 +35,8 @@ function HelpOverlay({ onClose }: HelpOverlayProps) {
                 </svg>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Help & Documentation</h2>
-                <p className="text-sm text-gray-400">Quick guides and shortcuts</p>
+                <h2 className="text-xl font-bold text-white">{t('settings.help.title')}</h2>
+                <p className="text-sm text-gray-400">{t('settings.help.subtitle')}</p>
               </div>
             </div>
             <button
@@ -56,28 +58,28 @@ function HelpOverlay({ onClose }: HelpOverlayProps) {
               <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              Quick Start
+              {t('settings.help.quick_start')}
             </h3>
             <ol className="space-y-2 text-gray-300 text-sm">
               <li className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
-                <span>Configure your capture region in <strong>Settings → Region</strong></span>
+                <span dangerouslySetInnerHTML={{ __html: t('settings.help.quick_start_step1') }} />
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                <span>Choose a capture profile (optional) - Discord, Teams, Zoom, or Default</span>
+                <span>{t('settings.help.quick_start_step2')}</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
-                <span>Click <strong className="text-green-400">START CAPTURE</strong> - a hollow border will appear</span>
+                <span dangerouslySetInnerHTML={{ __html: t('settings.help.quick_start_step3') }} />
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">4</span>
-                <span>Share the <strong>RustFrame Preview Window</strong> in your video call app</span>
+                <span dangerouslySetInnerHTML={{ __html: t('settings.help.quick_start_step4') }} />
               </li>
               <li className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">5</span>
-                <span>Click <strong className="text-red-400">STOP</strong> when done</span>
+                <span dangerouslySetInnerHTML={{ __html: t('settings.help.quick_start_step5') }} />
               </li>
             </ol>
           </section>
@@ -89,7 +91,7 @@ function HelpOverlay({ onClose }: HelpOverlayProps) {
                 <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                 </svg>
-                Keyboard Shortcuts
+                {t('settings.help.keyboard_shortcuts')}
               </h3>
               <div className="grid grid-cols-1 gap-2">
                 {shortcuts.map((shortcut, idx) => (
@@ -110,7 +112,7 @@ function HelpOverlay({ onClose }: HelpOverlayProps) {
               <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
-              Documentation
+              {t('settings.help.documentation')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <button
@@ -121,11 +123,11 @@ function HelpOverlay({ onClose }: HelpOverlayProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <div>
-                  <div className="text-sm font-medium text-white">User Guide</div>
-                  <div className="text-xs text-gray-400">Full documentation</div>
+                  <div className="text-sm font-medium text-white">{t('settings.help.user_guide')}</div>
+                  <div className="text-xs text-gray-400">{t('settings.help.user_guide_desc')}</div>
                 </div>
               </button>
-              
+
               <button
                 onClick={() => open("https://github.com/salihcantekin/RustFrameApp/issues")}
                 className="flex items-center gap-3 p-3 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg transition-colors text-left"
@@ -134,8 +136,8 @@ function HelpOverlay({ onClose }: HelpOverlayProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <div>
-                  <div className="text-sm font-medium text-white">Troubleshooting</div>
-                  <div className="text-xs text-gray-400">Common issues</div>
+                  <div className="text-sm font-medium text-white">{t('settings.help.troubleshooting')}</div>
+                  <div className="text-xs text-gray-400">{t('settings.help.troubleshooting_desc')}</div>
                 </div>
               </button>
 
@@ -147,8 +149,8 @@ function HelpOverlay({ onClose }: HelpOverlayProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 <div>
-                  <div className="text-sm font-medium text-white">Quick Start</div>
-                  <div className="text-xs text-gray-400">Get started fast</div>
+                  <div className="text-sm font-medium text-white">{t('settings.help.quick_start_link')}</div>
+                  <div className="text-xs text-gray-400">{t('settings.help.quick_start_link_desc')}</div>
                 </div>
               </button>
 
@@ -160,8 +162,8 @@ function HelpOverlay({ onClose }: HelpOverlayProps) {
                   <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
                 </svg>
                 <div>
-                  <div className="text-sm font-medium text-white">GitHub</div>
-                  <div className="text-xs text-gray-400">Source code</div>
+                  <div className="text-sm font-medium text-white">{t('settings.help.github')}</div>
+                  <div className="text-xs text-gray-400">{t('settings.help.github_desc')}</div>
                 </div>
               </button>
             </div>
@@ -173,10 +175,10 @@ function HelpOverlay({ onClose }: HelpOverlayProps) {
               <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Found a Bug?
+              {t('settings.help.found_bug')}
             </h3>
             <p className="text-sm text-gray-300 mb-3">
-              Help us improve RustFrame by reporting issues or suggesting features.
+              {t('settings.help.found_bug_desc')}
             </p>
             <button
               onClick={() => open("https://github.com/salihcantekin/RustFrameApp/issues/new")}
@@ -185,7 +187,7 @@ function HelpOverlay({ onClose }: HelpOverlayProps) {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
-              Report an Issue
+              {t('settings.help.report_issue')}
             </button>
           </section>
         </div>
@@ -193,10 +195,8 @@ function HelpOverlay({ onClose }: HelpOverlayProps) {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-700 bg-gray-800/50">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-400">
-              Press <kbd className="px-2 py-1 bg-gray-700 rounded text-xs">Esc</kbd> to close
-            </span>
-            <span className="text-gray-500">RustFrame v2.0+</span>
+            <span className="text-gray-400" dangerouslySetInnerHTML={{ __html: t('settings.help.press_esc') }} />
+            <span className="text-gray-500">{t('settings.help.version')}</span>
           </div>
         </div>
       </div>

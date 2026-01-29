@@ -1,4 +1,5 @@
 pub mod profiles;
+pub mod locales;
 pub mod settings;
 pub mod system;
 pub mod windowing;
@@ -22,6 +23,11 @@ pub fn handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sy
         profiles::download_profile,
         profiles::delete_profile,
         profiles::get_profile_details,
+        locales::list_locales,
+        locales::load_locales,
+        locales::get_locales_path,
+        locales::open_locales_folder,
+        locales::download_locales,
         windowing::get_available_windows,
         settings::save_settings,
         settings::get_settings_path,

@@ -60,6 +60,16 @@ static ALLOW_SCREEN_CAPTURE: AtomicBool = AtomicBool::new(false);
 /// Set whether hollow border should be visible in screen capture tools
 pub fn set_allow_screen_capture(allow: bool) {
     ALLOW_SCREEN_CAPTURE.store(allow, Ordering::SeqCst);
+    if let Ok(hwnd_lock) = HOLLOW_HWND.lock() {
+        let hwnd_val = *hwnd_lock;
+        if hwnd_val != 0 {
+            unsafe {
+                let hwnd = HWND(hwnd_val as *mut std::ffi::c_void);
+                let affinity = if allow { WDA_NONE } else { WDA_EXCLUDEFROMCAPTURE };
+                let _ = SetWindowDisplayAffinity(hwnd, affinity);
+            }
+        }
+    }
 }
 
 /// Check if border is currently being dragged or resized
@@ -659,9 +669,10 @@ fn run_window_thread(
             LWA_COLORKEY,
         );
 
-        // Exclude from capture (optional, but good practice to avoid capturing our own border)
-        // WDA_EXCLUDEFROMCAPTURE = 0x00000011
-        let _ = SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+        // Apply display affinity based on current allow flag (defaults to exclude).
+        let allow_capture = ALLOW_SCREEN_CAPTURE.load(Ordering::SeqCst);
+        let affinity = if allow_capture { WDA_NONE } else { WDA_EXCLUDEFROMCAPTURE };
+        let _ = SetWindowDisplayAffinity(hwnd, affinity);
 
         // Apply the hollow region (using window dimensions which include border)
         apply_hollow_region(hwnd, window_w, window_h, border_width);
@@ -973,6 +984,7 @@ unsafe extern "system" fn subclass_proc(
         if new_width > 0 && new_height > 0 {
             let border = BORDER_WIDTH.lock().map(|b| *b).unwrap_or(4);
             apply_hollow_region(hwnd, new_width, new_height, border);
+            let _ = InvalidateRect(Some(hwnd), None, true);
 
             // Update global rect with new size
             let mut win_rect = RECT::default();
