@@ -51,8 +51,11 @@ jobs:
       
       - name: Update version in project files
         run: |
-          version="${{ github.event.inputs.version }}"
-          echo "Updating version to: $version"
+          version_raw="${{ github.event.inputs.version }}"
+          version="${version_raw#v}"
+          version="${version%-windows}"
+          version="${version%-macos}"
+          echo "Updating project version to: $version (input: $version_raw)"
           
           # Update Cargo.toml - only the [package] section version
           # Use awk to find [package] section and update first version line
@@ -81,27 +84,15 @@ jobs:
               exit 1
           fi
           
-          # Update package.json
-          sed -i.bak "s/\"version\": \"[0-9]*\.[0-9]*\.[0-9]*\"/\"version\": \"$version\"/" ui/package.json
-          echo "[OK] Updated package.json"
-          
           # Update tauri.conf.json
-          sed -i.bak "s/\"version\": \"[0-9]*\.[0-9]*\.[0-9]*\"/\"version\": \"$version\"/" tauri.conf.json
+          sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$version\"/" tauri.conf.json
           echo "[OK] Updated tauri.conf.json"
           
           # Remove backup files
-          rm -f Cargo.toml.bak ui/package.json.bak tauri.conf.json.bak
+          rm -f Cargo.toml.bak tauri.conf.json.bak
           
           echo ""
-          echo "[SUCCESS] Version updated to $version in all files"
-      
-      - name: Commit version changes
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add Cargo.toml ui/package.json tauri.conf.json
-          git commit -m "chore: bump version to ${{ github.event.inputs.version }}" || echo "No changes to commit"
-          git push || echo "Nothing to push"
+          echo "[SUCCESS] Version updated to $version in Cargo.toml and tauri.conf.json"
       
       - name: Setup Node.js
         uses: actions/setup-node@v4

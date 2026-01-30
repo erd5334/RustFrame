@@ -32,8 +32,11 @@ jobs:
       
       - name: Update version in project files
         run: |
-          $version = "${{ github.event.inputs.version }}"
-          Write-Host "Updating version to: $version"
+          $versionRaw = "${{ github.event.inputs.version }}"
+          $version = $versionRaw
+          if ($version.StartsWith("v")) { $version = $version.Substring(1) }
+          $version = $version -replace '(?i)-(windows|macos)$', ''
+          Write-Host "Updating project version to: $version (input: $versionRaw)"
           
           # Update Cargo.toml - update the first version = line after [package]
           $cargoLines = Get-Content Cargo.toml
@@ -75,12 +78,6 @@ jobs:
               exit 1
           }
           
-          # Update package.json
-          $packageContent = Get-Content ui/package.json -Raw
-          $packageContent = $packageContent -replace '"version":\s*"[^"]*"', "`"version`": `"$version`""
-          $packageContent | Set-Content ui/package.json -NoNewline
-          Write-Host "[OK] Updated package.json"
-          
           # Update tauri.conf.json
           $tauriContent = Get-Content tauri.conf.json -Raw
           $tauriContent = $tauriContent -replace '"version":\s*"[^"]*"', "`"version`": `"$version`""
@@ -88,17 +85,8 @@ jobs:
           Write-Host "[OK] Updated tauri.conf.json"
           
           Write-Host ""
-          Write-Host "[SUCCESS] Version updated to $version in all files"
+          Write-Host "[SUCCESS] Version updated to $version in Cargo.toml and tauri.conf.json"
         shell: powershell
-      
-      - name: Commit version changes
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add Cargo.toml ui/package.json tauri.conf.json
-          git diff --staged --quiet || git commit -m "chore: bump version to ${{ github.event.inputs.version }}"
-          git push || echo "Nothing to push or already up to date"
-        shell: bash
       
       - name: Setup Node.js
         uses: actions/setup-node@v4

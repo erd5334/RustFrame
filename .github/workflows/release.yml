@@ -30,52 +30,73 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build Windows Executable
-    runs-on: windows-latest
-    
+  compute:
+    name: Compute Version
+    runs-on: ubuntu-latest
+    outputs:
+      version_input: ${{ steps.compute.outputs.version_input }}
+      version_trim: ${{ steps.compute.outputs.version_trim }}
+      version_project: ${{ steps.compute.outputs.version_project }}
+      version_tag: ${{ steps.compute.outputs.version_tag }}
+      release_name: ${{ steps.compute.outputs.release_name }}
+      is_prerelease: ${{ steps.compute.outputs.is_prerelease }}
     steps:
       - name: Compute version variables
         id: compute
-        shell: pwsh
+        shell: bash
         run: |
-          # Figure out version source: workflow_dispatch input or tag name
-          $versionInput = "${{ github.event.inputs.version }}"
-          if ([string]::IsNullOrWhiteSpace($versionInput)) {
-            $versionInput = "${{ github.ref_name }}"  # e.g. v1.1.0 or v1.1.0-rc.1
-          }
+          version_input="${{ github.event.inputs.version }}"
+          if [ -z "$version_input" ]; then
+            version_input="${{ github.ref_name }}"
+          fi
 
-          # Trim leading 'v' for Cargo.toml
-          $versionTrim = $versionInput.TrimStart('v')
+          version_trim="${version_input#v}"
+          version_project="${version_trim%-windows}"
+          version_project="${version_project%-macos}"
+          version_tag="${version_input}"
 
-          # Release name (fallback)
-          $releaseName = "${{ github.event.inputs.release_name }}"
-          if ([string]::IsNullOrWhiteSpace($releaseName)) { $releaseName = "RustFrame" }
+          release_name="${{ github.event.inputs.release_name }}"
+          if [ -z "$release_name" ]; then
+            release_name="RustFrame"
+          fi
 
-          # Determine prerelease: explicit input or inferred from hyphen in version (semver prerelease)
-          $preInput = "${{ github.event.inputs.prerelease }}"
-          if ([string]::IsNullOrWhiteSpace($preInput)) {
-            $isPrerelease = $versionTrim.Contains('-')
-          } else {
-            $isPrerelease = [System.Convert]::ToBoolean($preInput)
-          }
-          
-          "version_input=$versionInput"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "version_trim=$versionTrim"    | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "release_name=$releaseName"    | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "is_prerelease=$isPrerelease"  | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          pre_input="${{ github.event.inputs.prerelease }}"
+          if [ -z "$pre_input" ]; then
+            if [[ "$version_project" == *-* ]]; then is_prerelease=true; else is_prerelease=false; fi
+          else
+            if [ "$pre_input" = "true" ]; then is_prerelease=true; else is_prerelease=false; fi
+          fi
 
+          echo "version_input=$version_input" >> "$GITHUB_OUTPUT"
+          echo "version_trim=$version_trim" >> "$GITHUB_OUTPUT"
+          echo "version_project=$version_project" >> "$GITHUB_OUTPUT"
+          echo "version_tag=$version_tag" >> "$GITHUB_OUTPUT"
+          echo "release_name=$release_name" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=$is_prerelease" >> "$GITHUB_OUTPUT"
+
+  build-windows:
+    name: Build Windows
+    needs: compute
+    runs-on: windows-latest
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
       - name: Update version in Cargo.toml
         env:
-          VERSION_TRIM: ${{ steps.compute.outputs.version_trim }}
+          VERSION_PROJECT: ${{ needs.compute.outputs.version_project }}
         run: |
-          $version = "$env:VERSION_TRIM"
+          $version = "$env:VERSION_PROJECT"
           Write-Host "Setting version to: $version"
           
           # Read Cargo.toml line by line and update version in [package] section only
@@ -86,133 +107,247 @@ jobs:
           for ($i = 0; $i -lt $lines.Count; $i++) {
               if ($lines[$i] -match '^\[package\]') {
                   $inPackageSection = $true
-                  Write-Host "Found [package] section at line $($i+1)"
               }
               elseif ($lines[$i] -match '^\[') {
                   $inPackageSection = $false
               }
               elseif ($inPackageSection -and $lines[$i] -match '^version\s*=\s*"[^"]*"' -and -not $versionUpdated) {
-                  Write-Host "Found version line at line $($i+1): $($lines[$i])"
                   $lines[$i] = "version = `"$version`""
-                  Write-Host "Updated to: $($lines[$i])"
                   $versionUpdated = $true
               }
           }
           
-          # Write back
           $lines | Set-Content "Cargo.toml"
-          
           Write-Host "✅ Cargo.toml version updated to $version"
-          # Show the updated lines for verification
-          Select-String -Path "Cargo.toml" -Pattern '^(\s*version\s*=|\s*rust-version\s*=)'
 
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+      - name: Update version in tauri.conf.json
+        env:
+          VERSION_PROJECT: ${{ needs.compute.outputs.version_project }}
+        run: |
+          $version = "$env:VERSION_PROJECT"
+          $tauriContent = Get-Content tauri.conf.json -Raw
+          $tauriContent = $tauriContent -replace '"version":\s*"[^"]*"', "`"version`": `"$version`""
+          $tauriContent | Set-Content tauri.conf.json -NoNewline
+          Write-Host "✅ tauri.conf.json version updated to $version"
+
+      - name: Install UI dependencies
+        working-directory: ./ui
+        run: npm ci
+
+      - name: Build UI
+        working-directory: ./ui
+        run: npm run build
 
       - name: Build release binary
         run: cargo build --release --verbose
 
-      - name: Verify binary exists
-        run: |
-          if (Test-Path "target/release/RustFrame.exe") {
-            Write-Host "✅ RustFrame.exe found!"
-            Get-Item "target/release/RustFrame.exe" | Format-List
-          } else {
-            Write-Error "❌ RustFrame.exe not found!"
-            exit 1
-          }
-
       - name: Create release package
         env:
-          VERSION_INPUT: ${{ steps.compute.outputs.version_input }}
+          VERSION_TRIM: ${{ needs.compute.outputs.version_trim }}
         run: |
-          # Create release directory
-          New-Item -ItemType Directory -Force -Path "release-package"
+          New-Item -ItemType Directory -Force -Path "dist"
+          Copy-Item "target/release/RustFrame.exe" -Destination "dist/"
+          if (Test-Path "README.md") { Copy-Item "README.md" -Destination "dist/" }
+          if (Test-Path "LICENSE") { Copy-Item "LICENSE" -Destination "dist/" }
           
-          # Copy the executable (main file - always required)
-          Copy-Item "target/release/RustFrame.exe" -Destination "release-package/"
-          
-          # Copy documentation files (if they exist)
-          if (Test-Path "README.md") {
-            Copy-Item "README.md" -Destination "release-package/"
-          }
-          if (Test-Path "LICENSE") {
-            Copy-Item "LICENSE" -Destination "release-package/"
-          }
-          
-          # Create ZIP archive
-          Compress-Archive -Path "release-package/*" -DestinationPath "RustFrame-$env:VERSION_INPUT-windows-x64.zip"
-          
-          Write-Host "✅ Release package created!"
-          Get-ChildItem "RustFrame-$env:VERSION_INPUT-windows-x64.zip" | Format-List
+          $zipName = "RustFrame-Windows-x64-v$env:VERSION_TRIM.zip"
+          Compress-Archive -Path "dist/*" -DestinationPath $zipName
+          Write-Host "✅ Created: $zipName"
 
-      - name: Upload build artifact
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RustFrame-${{ steps.compute.outputs.version_input }}-windows-x64
-          path: release-package/*
+          name: RustFrame-Windows-x64-v${{ needs.compute.outputs.version_trim }}
+          path: RustFrame-Windows-x64-v${{ needs.compute.outputs.version_trim }}.zip
           retention-days: 30
+
+  build-macos:
+    name: Build macOS
+    needs: compute
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            target: aarch64-apple-darwin
+            display_name: ARM64 (Apple Silicon)
+          - arch: x86_64
+            target: x86_64-apple-darwin
+            display_name: Intel (x86_64)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      - name: Update version in Cargo.toml
+        env:
+          VERSION_PROJECT: ${{ needs.compute.outputs.version_project }}
+        run: |
+          version="$VERSION_PROJECT"
+          echo "Setting version to: $version"
+          
+          awk -v ver="$version" '
+          /^\[package\]/ { in_package=1 }
+          /^\[/ && !/^\[package\]/ { in_package=0 }
+          in_package && /^version = / && !updated {
+              print "version = \"" ver "\""
+              updated=1
+              next
+          }
+          { print }
+          ' Cargo.toml > Cargo.toml.tmp && mv Cargo.toml.tmp Cargo.toml
+          echo "✅ Cargo.toml version updated to $version"
+
+      - name: Update version in tauri.conf.json
+        env:
+          VERSION_PROJECT: ${{ needs.compute.outputs.version_project }}
+        run: |
+          version="$VERSION_PROJECT"
+          sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$version\"/" tauri.conf.json
+          rm -f tauri.conf.json.bak
+          echo "✅ tauri.conf.json version updated to $version"
+
+      - name: Install UI dependencies
+        working-directory: ./ui
+        run: npm ci
+
+      - name: Build UI
+        working-directory: ./ui
+        run: npm run build
+
+      - name: Build Rust for ${{ matrix.display_name }}
+        run: cargo build --release --target ${{ matrix.target }} --verbose
+
+      - name: Create .app bundle
+        env:
+          VERSION_TRIM: ${{ needs.compute.outputs.version_trim }}
+        run: |
+          mkdir -p RustFrame.app/Contents/MacOS
+          mkdir -p RustFrame.app/Contents/Resources
+          
+          cp target/${{ matrix.target }}/release/rustframe RustFrame.app/Contents/MacOS/rustframe
+          chmod +x RustFrame.app/Contents/MacOS/rustframe
+          
+          cat > RustFrame.app/Contents/Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleDevelopmentRegion</key>
+              <string>en</string>
+              <key>CFBundleExecutable</key>
+              <string>rustframe</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.salihcantekin.rustframe</string>
+              <key>CFBundleInfoDictionaryVersion</key>
+              <string>6.0</string>
+              <key>CFBundleName</key>
+              <string>RustFrame</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>${{ needs.compute.outputs.version_trim }}</string>
+              <key>CFBundleVersion</key>
+              <string>1</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>10.15</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+              <key>NSSupportsAutomaticGraphicsSwitching</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+          
+          codesign --force --deep --sign - RustFrame.app
+          echo "✅ .app bundle created and signed"
+
+      - name: Create ZIP archive
+        env:
+          VERSION_TRIM: ${{ needs.compute.outputs.version_trim }}
+        run: |
+          mkdir -p dist
+          cp -r RustFrame.app dist/
+          cp README.md dist/ || true
+          cp LICENSE dist/ || true
+          
+          zipname="RustFrame-macOS-${{ matrix.arch }}-v${{ needs.compute.outputs.version_trim }}.zip"
+          (cd dist && zip -r "../${zipname}" .)
+          echo "Created: ${zipname}"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RustFrame-macOS-${{ matrix.arch }}-v${{ needs.compute.outputs.version_trim }}
+          path: RustFrame-macOS-${{ matrix.arch }}-v${{ needs.compute.outputs.version_trim }}.zip
+          retention-days: 30
+
+  release:
+    name: Create Release
+    needs: [compute, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
 
       - name: Prepare release notes (from changelog if available)
         env:
-          VERSION_INPUT: ${{ steps.compute.outputs.version_input }}
-          VERSION_TRIM:  ${{ steps.compute.outputs.version_trim }}
-        shell: pwsh
+          VERSION_INPUT: ${{ needs.compute.outputs.version_tag }}
+          VERSION_TRIM:  ${{ needs.compute.outputs.version_trim }}
         run: |
-          $versionInput = "$env:VERSION_INPUT"            # e.g., v1.2.3
-          $versionTrim  = "$env:VERSION_TRIM"             # e.g., 1.2.3
+          version_input="$VERSION_INPUT"
+          version_trim="$VERSION_TRIM"
 
-          # Candidate changelog paths
-          $paths = @(
-            "docs/changelog/$versionInput.md",
-            "docs/changelog/$versionTrim.md"
+          paths=(
+            "docs/changelog/${version_input}.md"
+            "docs/changelog/${version_trim}.md"
           )
 
-          $changelog = $null
-          foreach ($p in $paths) {
-            if (Test-Path $p) { $changelog = $p; break }
-          }
+          changelog=""
+          for p in "${paths[@]}"; do
+            if [ -f "$p" ]; then changelog="$p"; break; fi
+          done
 
-          if ($changelog) {
-            Write-Host "Using changelog: $changelog"
-            $content = Get-Content $changelog -Raw
-          } else {
-            Write-Host "Changelog not found for $versionInput; using default body"
-            $content = @(
-              "## RustFrame $versionInput",
-              "",
-              "### 📥 Download",
-              "Download `RustFrame-$versionInput-windows-x64.zip`, extract and run `RustFrame.exe`.",
-              "",
-              "### ✨ Highlights",
-              "- GPU-accelerated screen capture using Windows.Graphics.Capture API",
-              "- Adjustable frame overlay for precise region selection",
-              "- Keyboard shortcuts for quick adjustments",
-              "- Great for video conferencing screen sharing"
-            ) -join "`n"
-          }
+          if [ -n "$changelog" ]; then
+            echo "Using changelog: $changelog"
+            cat "$changelog" > release-notes.md
+          else
+            cat > release-notes.md <<EOF
+          ## RustFrame ${version_input}
 
-          # Write release notes to file for action-gh-release body_path
-          $content | Out-File -FilePath "release-notes.md" -Encoding utf8
+          ### Download
+          - Windows: RustFrame-Windows-x64-v${version_trim}.zip
+          - macOS (ARM64): RustFrame-macOS-arm64-v${version_trim}.zip
+          - macOS (Intel): RustFrame-macOS-x86_64-v${version_trim}.zip
+          EOF
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.compute.outputs.version_input }}
-          name: ${{ steps.compute.outputs.release_name }} - ${{ steps.compute.outputs.version_input }}
+          tag_name: ${{ needs.compute.outputs.version_tag }}
+          name: ${{ needs.compute.outputs.release_name }} - ${{ needs.compute.outputs.version_tag }}
           body_path: release-notes.md
           draft: false
-          prerelease: ${{ steps.compute.outputs.is_prerelease }}
+          prerelease: ${{ needs.compute.outputs.is_prerelease }}
           files: |
-            RustFrame-${{ steps.compute.outputs.version_input }}-windows-x64.zip
-            target/release/RustFrame.exe
+            dist/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
